@@ -16,15 +16,15 @@ use core::{
 };
 
 /// A type that can convert between big-endian and little-endian.
-pub trait ConvertEndian: Copy {
-    /// Converts from little-endian to big-endian and vice-versa.
-    fn convert_endian(self) -> Self;
+pub trait Primitive: Copy {
+    /// Swaps from little-endian to big-endian and vice-versa.
+    fn swap_endian(self) -> Self;
 }
 
 /// A type that can convert between native endianness and a target endianness.
 pub trait Endianness {
-    /// Converts from native-endian to target-endian and vice-versa.
-    fn convert_native<T: ConvertEndian>(value: T) -> T;
+    /// Swaps from native-endian to target-endian and vice-versa.
+    fn swap_native<T: Primitive>(value: T) -> T;
 }
 
 /// A type stored with a particular endianness
@@ -34,12 +34,12 @@ pub struct Endian<T, E> {
     _phantom: PhantomData<E>,
 }
 
-impl<T: ConvertEndian, E: Endianness> Endian<T, E> {
+impl<T: Primitive, E: Endianness> Endian<T, E> {
     /// Creates a new `Endian` from a native-endian value
     #[inline]
     pub fn new(native: T) -> Self {
         Self {
-            value: E::convert_native(native),
+            value: E::swap_native(native),
             _phantom: PhantomData,
         }
     }
@@ -47,18 +47,18 @@ impl<T: ConvertEndian, E: Endianness> Endian<T, E> {
     /// Converts an `Endian` to a native-endian value
     #[inline]
     pub fn to_ne(self) -> T {
-        E::convert_native(self.value)
+        E::swap_native(self.value)
     }
 
     #[inline]
     fn convert(&mut self) {
-        self.value = E::convert_native(self.value);
+        self.value = E::swap_native(self.value);
     }
 }
 
 macro_rules! impl_unop {
     ($trait:ident, $fn:ident) => {
-        impl<T: ConvertEndian + core::ops::$trait, E: Endianness> core::ops::$trait for Endian<T, E> {
+        impl<T: Primitive + core::ops::$trait, E: Endianness> core::ops::$trait for Endian<T, E> {
             type Output = <T as core::ops::$trait>::Output;
 
             #[inline]
@@ -71,7 +71,7 @@ macro_rules! impl_unop {
 
 macro_rules! impl_from {
     ($($prim:ty),*) => {
-        impl<T: ConvertEndian, E: Endianness> From<T> for Endian<T, E> {
+        impl<T: Primitive, E: Endianness> From<T> for Endian<T, E> {
             #[inline]
             fn from(value: T) -> Self {
                 Self::new(value)
@@ -90,7 +90,7 @@ macro_rules! impl_from {
 
 macro_rules! impl_binop {
     (@impl $trait:ident::$fn:ident($self:ident, $other:ident: $in:ty) -> $out:ty { $expr:expr }) => {
-        impl<T: ConvertEndian + ::core::ops::$trait<Output = T>, E: Endianness> ::core::ops::$trait<$in> for Endian<T, E> {
+        impl<T: Primitive + ::core::ops::$trait<Output = T>, E: Endianness> ::core::ops::$trait<$in> for Endian<T, E> {
             type Output = $out;
 
             #[inline]
@@ -173,7 +173,7 @@ macro_rules! impl_binop {
 
 macro_rules! impl_binassign {
     (@impl $trait:ident::$fn:ident($self:ident, $other:ident: $in:ty) { $stmt:stmt }) => {
-        impl<T: ConvertEndian + ::core::ops::$trait<T>, E: Endianness> ::core::ops::$trait<$in> for Endian<T, E> {
+        impl<T: Primitive + ::core::ops::$trait<T>, E: Endianness> ::core::ops::$trait<$in> for Endian<T, E> {
             #[inline]
             fn $fn(&mut $self, $other: $in) {
                 $self.convert();
@@ -246,7 +246,7 @@ macro_rules! impl_binassign {
 
 macro_rules! impl_fmt {
     ($trait:ident) => {
-        impl<T: ConvertEndian + core::fmt::$trait, E: Endianness> core::fmt::$trait for Endian<T, E> {
+        impl<T: Primitive + core::fmt::$trait, E: Endianness> core::fmt::$trait for Endian<T, E> {
             #[inline]
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 self.to_ne().fmt(f)
@@ -279,7 +279,7 @@ impl<T: Copy, E> Copy for Endian<T, E> {}
 
 impl_fmt!(Debug);
 
-impl<T: ConvertEndian, E: Endianness> Default for Endian<T, E>
+impl<T: Primitive, E: Endianness> Default for Endian<T, E>
 where
     T: Default,
 {
@@ -296,7 +296,7 @@ impl<T: Eq, E> Eq for Endian<T, E> {}
 
 impl_from!(i16, i32, i64, i128, u16, u32, u64, u128, f32, f64, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128);
 
-impl<T: ConvertEndian + Hash, E: Endianness> Hash for Endian<T, E> {
+impl<T: Primitive + Hash, E: Endianness> Hash for Endian<T, E> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.to_ne().hash(state);
     }
@@ -310,7 +310,7 @@ impl_unop!(Neg, neg);
 impl_unop!(Not, not);
 impl_fmt!(Octal);
 
-impl<T: ConvertEndian + Ord, E: Endianness> Ord for Endian<T, E> {
+impl<T: Primitive + Ord, E: Endianness> Ord for Endian<T, E> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.to_ne().cmp(&other.to_ne())
@@ -324,28 +324,28 @@ impl<T: PartialEq, E> PartialEq for Endian<T, E> {
     }
 }
 
-impl<T: ConvertEndian + PartialEq, E: Endianness> PartialEq<T> for Endian<T, E> {
+impl<T: Primitive + PartialEq, E: Endianness> PartialEq<T> for Endian<T, E> {
     #[inline]
     fn eq(&self, other: &T) -> bool {
         self.to_ne().eq(other)
     }
 }
 
-impl<T: ConvertEndian + PartialOrd, E: Endianness> PartialOrd for Endian<T, E> {
+impl<T: Primitive + PartialOrd, E: Endianness> PartialOrd for Endian<T, E> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.to_ne().partial_cmp(&other.to_ne())
     }
 }
 
-impl<T: ConvertEndian + PartialOrd, E: Endianness> PartialOrd<T> for Endian<T, E> {
+impl<T: Primitive + PartialOrd, E: Endianness> PartialOrd<T> for Endian<T, E> {
     #[inline]
     fn partial_cmp(&self, other: &T) -> Option<Ordering> {
         self.to_ne().partial_cmp(other)
     }
 }
 
-impl<T: ConvertEndian + core::iter::Product, E: Endianness> core::iter::Product for Endian<T, E> {
+impl<T: Primitive + core::iter::Product, E: Endianness> core::iter::Product for Endian<T, E> {
     #[inline]
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         Self::new(iter.map(|x| x.to_ne()).product())
@@ -361,7 +361,7 @@ impl_binassign!(ShrAssign::shr_assign [int]);
 impl_binop!(Sub::sub [int, float]);
 impl_binassign!(SubAssign::sub_assign [int, float]);
 
-impl<T: ConvertEndian + core::iter::Sum, E: Endianness> core::iter::Sum for Endian<T, E> {
+impl<T: Primitive + core::iter::Sum, E: Endianness> core::iter::Sum for Endian<T, E> {
     #[inline]
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         Self::new(iter.map(|x| x.to_ne()).sum())

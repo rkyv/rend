@@ -1,4 +1,4 @@
-use crate::ConvertEndian;
+use crate::Primitive;
 use core::{
     num::{
         NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64,
@@ -11,9 +11,9 @@ use core::{
 
 macro_rules! impl_integer {
     ($ne:ty) => {
-        impl ConvertEndian for $ne {
+        impl Primitive for $ne {
             #[inline(always)]
-            fn convert_endian(self) -> Self {
+            fn swap_endian(self) -> Self {
                 self.swap_bytes()
             }
         }
@@ -31,9 +31,9 @@ impl_integer!(u128);
 
 macro_rules! impl_float {
     ($ne:ty) => {
-        impl ConvertEndian for $ne {
+        impl Primitive for $ne {
             #[inline(always)]
-            fn convert_endian(self) -> Self {
+            fn swap_endian(self) -> Self {
                 <$ne>::from_bits(self.to_bits().swap_bytes())
             }
         }
@@ -43,18 +43,18 @@ macro_rules! impl_float {
 impl_float!(f32);
 impl_float!(f64);
 
-impl ConvertEndian for char {
+impl Primitive for char {
     #[inline(always)]
-    fn convert_endian(self) -> Self {
+    fn swap_endian(self) -> Self {
         unsafe { core::char::from_u32_unchecked((self as u32).swap_bytes()) }
     }
 }
 
 macro_rules! impl_nonzero {
     ($ne:ty) => {
-        impl ConvertEndian for $ne {
+        impl Primitive for $ne {
             #[inline(always)]
-            fn convert_endian(self) -> Self {
+            fn swap_endian(self) -> Self {
                 unsafe { <$ne>::new_unchecked(self.get().swap_bytes()) }
             }
         }
@@ -72,7 +72,7 @@ impl_nonzero!(NonZeroU128);
 
 // macro_rules! impl_atomic {
 //     ($ne:ty) => {
-//         impl ConvertEndian for $ne {
+//         impl Primitive for $ne {
 //             #[inline(always)]
 //             fn convert_endian(self) -> Self {
 //                 <$ne>::new(self.load(::core::sync::atomic::Ordering::Relaxed).swap_bytes())
