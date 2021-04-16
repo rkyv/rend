@@ -4,9 +4,6 @@ use core::{
         NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64,
         NonZeroU128
     },
-    // sync::atomic::{
-    //     AtomicI16, AtomicI32, AtomicI64, AtomicU16, AtomicU32, AtomicU64
-    // },
 };
 
 macro_rules! impl_integer {
@@ -69,21 +66,3 @@ impl_nonzero!(NonZeroU16);
 impl_nonzero!(NonZeroU32);
 impl_nonzero!(NonZeroU64);
 impl_nonzero!(NonZeroU128);
-
-// macro_rules! impl_atomic {
-//     ($ne:ty) => {
-//         impl Primitive for $ne {
-//             #[inline(always)]
-//             fn convert_endian(self) -> Self {
-//                 <$ne>::new(self.load(::core::sync::atomic::Ordering::Relaxed).swap_bytes())
-//             }
-//         }
-//     }
-// }
-
-// impl_atomic!(AtomicI16);
-// impl_atomic!(AtomicI32);
-// impl_atomic!(AtomicI64);
-// impl_atomic!(AtomicU16);
-// impl_atomic!(AtomicU32);
-// impl_atomic!(AtomicU64);
