@@ -1,6 +1,10 @@
 use crate::{Endian, BigEndian, LittleEndian};
-use core::num::{
-    NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128
+use core::{
+    num::{
+        NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64,
+        NonZeroU128
+    },
+    sync::atomic::{AtomicI16, AtomicI32, AtomicI64, AtomicU16, AtomicU32, AtomicU64},
 };
 
 /// Alias for `Endian<i16, BigEndian>`
@@ -135,3 +139,45 @@ pub type NonZeroU128_be = Endian<NonZeroU128, BigEndian>;
 /// Alias for `Endian<NonZeroU128, LittleEndian>`
 #[allow(non_camel_case_types)]
 pub type NonZeroU128_le = Endian<NonZeroU128, LittleEndian>;
+
+/// Alias for `Endian<AtomicI16, BigEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicI16_be = Endian<AtomicI16, BigEndian>;
+/// Alias for `Endian<AtomicI16, LittleEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicI16_le = Endian<AtomicI16, LittleEndian>;
+
+/// Alias for `Endian<AtomicI32, BigEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicI32_be = Endian<AtomicI32, BigEndian>;
+/// Alias for `Endian<AtomicI32, LittleEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicI32_le = Endian<AtomicI32, LittleEndian>;
+
+/// Alias for `Endian<AtomicI64, BigEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicI64_be = Endian<AtomicI64, BigEndian>;
+/// Alias for `Endian<AtomicI64, LittleEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicI64_le = Endian<AtomicI64, LittleEndian>;
+
+/// Alias for `Endian<AtomicU16, BigEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicU16_be = Endian<AtomicU16, BigEndian>;
+/// Alias for `Endian<AtomicU16, LittleEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicU16_le = Endian<AtomicU16, LittleEndian>;
+
+/// Alias for `Endian<AtomicU32, BigEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicU32_be = Endian<AtomicU32, BigEndian>;
+/// Alias for `Endian<AtomicU32, LittleEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicU32_le = Endian<AtomicU32, LittleEndian>;
+
+/// Alias for `Endian<AtomicU64, BigEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicU64_be = Endian<AtomicU64, BigEndian>;
+/// Alias for `Endian<AtomicU64, LittleEndian>`
+#[allow(non_camel_case_types)]
+pub type AtomicU64_le = Endian<AtomicU64, LittleEndian>;
