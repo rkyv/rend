@@ -44,6 +44,8 @@ mod alias;
 mod atomic;
 mod endian;
 mod impls;
+#[cfg(feature = "validation")]
+mod validation;
 
 pub use alias::*;
 #[cfg(rend_atomic)]
