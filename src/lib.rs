@@ -39,6 +39,8 @@
 //! assert_eq!("0x12345678", format!("0x{:x}", big_int));
 //! ```
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 mod alias;
 #[cfg(rend_atomic)]
 mod atomic;

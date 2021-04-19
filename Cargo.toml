@@ -18,5 +18,5 @@ bytecheck = { path = "../bytecheck/bytecheck", version = "0.4", optional = true 
 
 [features]
 default = ["std"]
-std = []
+std = ["bytecheck/std"]
 validation = ["bytecheck"]
