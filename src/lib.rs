@@ -1,8 +1,53 @@
+//! # rend
+//!
+//! rend is a library that provides endian-aware primitives for Rust.
+//!
+//! It's similar in design to [`simple_endian`](https://crates.io/crates/simple_endian), with the
+//! exception that it's easily extendable to other endiannesses than the builtin `BigEndian` and
+//! `LittleEndian`. It also has support for more builtin types such as atomics and nonzero integers.
+//!
+//! rend does not provide endian-aware types for types that are inherently endian-agnostic, such as
+//! `bool` and `u8`. It also does not provide endian-aware types for types that have an
+//! architecture-dependent size, such as `isize` and `usize`.
+//!
+//! rend is intended to be used to build portable types that can be shared between different
+//! architectures, especially with zero-copy deserialization.
+//!
+//! ## Example:
+//!
+//! ```
+//! use rend::*;
+//!
+//! let little_int = i32_le::new(0x12345678);
+//! // Internal representation is little-endian
+//! assert_eq!([0x78, 0x56, 0x34, 0x12], unsafe { ::core::mem::transmute::<_, [u8; 4]>(little_int) });
+//!
+//! // Can also be made with `.into()`
+//! let little_int: i32_le = 0x12345678.into();
+//! // Still formats correctly
+//! assert_eq!("305419896", format!("{}", little_int));
+//! assert_eq!("0x12345678", format!("0x{:x}", little_int));
+//!
+//! let big_int = i32_be::new(0x12345678);
+//! // Internal representation is big-endian
+//! assert_eq!([0x12, 0x34, 0x56, 0x78], unsafe { ::core::mem::transmute::<_, [u8; 4]>(big_int) });
+//!
+//! // Can also be made with `.into()`
+//! let big_int: i32_be = 0x12345678.into();
+//! // Still formats correctly
+//! assert_eq!("305419896", format!("{}", big_int));
+//! assert_eq!("0x12345678", format!("0x{:x}", big_int));
+//! ```
+
 mod alias;
+#[cfg(rend_atomic)]
+mod atomic;
 mod endian;
 mod impls;
 
 pub use alias::*;
+#[cfg(rend_atomic)]
+pub use atomic::*;
 pub use endian::*;
 
 use core::{
@@ -373,8 +418,145 @@ impl_fmt!(UpperHex);
 
 #[cfg(test)]
 mod tests {
+    use crate::*;
+    use core::mem;
+
     #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    fn endian_representation() {
+        unsafe {
+            // i16
+            assert_eq!([0x01, 0x02], mem::transmute::<_, [u8; 2]>(i16_be::new(0x0102)));
+            assert_eq!([0x02, 0x01], mem::transmute::<_, [u8; 2]>(i16_le::new(0x0102)));
+
+            // i32
+            assert_eq!(
+                [0x01, 0x02, 0x03, 0x04],
+                mem::transmute::<_, [u8; 4]>(i32_be::new(0x01020304))
+            );
+            assert_eq!(
+                [0x04, 0x03, 0x02, 0x01],
+                mem::transmute::<_, [u8; 4]>(i32_le::new(0x01020304))
+            );
+
+            // i64
+            assert_eq!(
+                [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
+                mem::transmute::<_, [u8; 8]>(i64_be::new(0x0102030405060708))
+            );
+            assert_eq!(
+                [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
+                mem::transmute::<_, [u8; 8]>(i64_le::new(0x0102030405060708))
+            );
+
+            // i128
+            assert_eq!(
+                [
+                    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+                    0x0e, 0x0f, 0x10
+                ],
+                mem::transmute::<_, [u8; 16]>(i128_be::new(0x0102030405060708090a0b0c0d0e0f10))
+            );
+            assert_eq!(
+                [
+                    0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04,
+                    0x03, 0x02, 0x01
+                ],
+                mem::transmute::<_, [u8; 16]>(i128_le::new(0x0102030405060708090a0b0c0d0e0f10))
+            );
+
+            // u16
+            assert_eq!([0x01, 0x02], mem::transmute::<_, [u8; 2]>(u16_be::new(0x0102)));
+            assert_eq!([0x02, 0x01], mem::transmute::<_, [u8; 2]>(u16_le::new(0x0102)));
+
+            // u32
+            assert_eq!(
+                [0x01, 0x02, 0x03, 0x04],
+                mem::transmute::<_, [u8; 4]>(u32_be::new(0x01020304))
+            );
+            assert_eq!(
+                [0x04, 0x03, 0x02, 0x01],
+                mem::transmute::<_, [u8; 4]>(u32_le::new(0x01020304))
+            );
+
+            // u64
+            assert_eq!(
+                [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
+                mem::transmute::<_, [u8; 8]>(u64_be::new(0x0102030405060708))
+            );
+            assert_eq!(
+                [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
+                mem::transmute::<_, [u8; 8]>(u64_le::new(0x0102030405060708))
+            );
+
+            // u128
+            assert_eq!(
+                [
+                    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+                    0x0e, 0x0f, 0x10
+                ],
+                mem::transmute::<_, [u8; 16]>(u128_be::new(0x0102030405060708090a0b0c0d0e0f10))
+            );
+            assert_eq!(
+                [
+                    0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04,
+                    0x03, 0x02, 0x01
+                ],
+                mem::transmute::<_, [u8; 16]>(u128_le::new(0x0102030405060708090a0b0c0d0e0f10))
+            );
+
+            // f32
+            assert_eq!(
+                [0x40, 0x49, 0x0f, 0xd0],
+                mem::transmute::<_, [u8; 4]>(f32_be::new(3.141590118408203125f32))
+            );
+            assert_eq!(
+                [0xd0, 0x0f, 0x49, 0x40],
+                mem::transmute::<_, [u8; 4]>(f32_le::new(3.141590118408203125f32))
+            );
+
+            // f64
+            assert_eq!(
+                [0x40, 0x09, 0x21, 0xfb, 0x4d, 0x12, 0xd8, 0x4a],
+                mem::transmute::<_, [u8; 8]>(f64_be::new(3.1415926000000000684053702571f64))
+            );
+            assert_eq!(
+                [0x4a, 0xd8, 0x12, 0x4d, 0xfb, 0x21, 0x09, 0x40],
+                mem::transmute::<_, [u8; 8]>(f64_le::new(3.1415926000000000684053702571f64))
+            );
+
+            // char
+            assert_eq!(
+                [0x00, 0x01, 0xf3, 0x89],
+                mem::transmute::<_, [u8; 4]>(char_be::new('🎉'))
+            );
+            assert_eq!(
+                [0x89, 0xf3, 0x01, 0x00],
+                mem::transmute::<_, [u8; 4]>(char_le::new('🎉'))
+            );
+
+            // AtomicU16
+            assert_eq!([0x01, 0x02], mem::transmute::<_, [u8; 2]>(AtomicU16_be::new(0x0102)));
+            assert_eq!([0x02, 0x01], mem::transmute::<_, [u8; 2]>(AtomicU16_le::new(0x0102)));
+
+            // AtomicU32
+            assert_eq!(
+                [0x01, 0x02, 0x03, 0x04],
+                mem::transmute::<_, [u8; 4]>(AtomicU32_be::new(0x01020304))
+            );
+            assert_eq!(
+                [0x04, 0x03, 0x02, 0x01],
+                mem::transmute::<_, [u8; 4]>(AtomicU32_le::new(0x01020304))
+            );
+
+            // AtomicU64
+            assert_eq!(
+                [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
+                mem::transmute::<_, [u8; 8]>(AtomicU64_be::new(0x0102030405060708))
+            );
+            assert_eq!(
+                [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
+                mem::transmute::<_, [u8; 8]>(AtomicU64_le::new(0x0102030405060708))
+            );
+        }
     }
 }
