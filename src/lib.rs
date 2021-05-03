@@ -59,8 +59,8 @@ use core::{
     hash::{Hash, Hasher},
     marker::PhantomData,
     num::{
-        NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64,
-        NonZeroU128
+        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128, NonZeroU16, NonZeroU32,
+        NonZeroU64,
     },
 };
 
@@ -115,7 +115,7 @@ macro_rules! impl_unop {
                 self.to_ne().$fn()
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_from {
@@ -301,18 +301,18 @@ macro_rules! impl_fmt {
                 self.to_ne().fmt(f)
             }
         }
-    }
+    };
 }
 
 impl_binop!(Add::add [int, float]);
 impl_binassign!(AddAssign::add_assign [int, float]);
 impl_fmt!(Binary);
-impl_binop!(BitAnd::bitand [int]);
-impl_binassign!(BitAndAssign::bitand_assign [int]);
+impl_binop!(BitAnd::bitand[int]);
+impl_binassign!(BitAndAssign::bitand_assign[int]);
 impl_binop!(BitOr::bitor [int, nonzero]);
 impl_binassign!(BitOrAssign::bitor_assign [int, nonzero]);
-impl_binop!(BitXor::bitxor [int]);
-impl_binassign!(BitXorAssign::bitxor_assign [int]);
+impl_binop!(BitXor::bitxor[int]);
+impl_binassign!(BitXorAssign::bitxor_assign[int]);
 
 impl<T: Clone, E> Clone for Endian<T, E> {
     #[inline]
@@ -343,7 +343,26 @@ impl_binassign!(DivAssign::div_assign [int, float]);
 
 impl<T: Eq, E> Eq for Endian<T, E> {}
 
-impl_from!(i16, i32, i64, i128, u16, u32, u64, u128, f32, f64, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128);
+impl_from!(
+    i16,
+    i32,
+    i64,
+    i128,
+    u16,
+    u32,
+    u64,
+    u128,
+    f32,
+    f64,
+    NonZeroI16,
+    NonZeroI32,
+    NonZeroI64,
+    NonZeroI128,
+    NonZeroU16,
+    NonZeroU32,
+    NonZeroU64,
+    NonZeroU128
+);
 
 impl<T: Primitive + Hash, E: Endianness> Hash for Endian<T, E> {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -403,10 +422,10 @@ impl<T: Primitive + core::iter::Product, E: Endianness> core::iter::Product for 
 
 impl_binop!(Rem::rem [int, float]);
 impl_binassign!(RemAssign::rem_assign [int, float]);
-impl_binop!(Shl::shl [int]);
-impl_binassign!(ShlAssign::shl_assign [int]);
-impl_binop!(Shr::shr [int]);
-impl_binassign!(ShrAssign::shr_assign [int]);
+impl_binop!(Shl::shl[int]);
+impl_binassign!(ShlAssign::shl_assign[int]);
+impl_binop!(Shr::shr[int]);
+impl_binassign!(ShrAssign::shr_assign[int]);
 impl_binop!(Sub::sub [int, float]);
 impl_binassign!(SubAssign::sub_assign [int, float]);
 
@@ -429,8 +448,14 @@ mod tests {
     fn endian_representation() {
         unsafe {
             // i16
-            assert_eq!([0x01, 0x02], mem::transmute::<_, [u8; 2]>(i16_be::new(0x0102)));
-            assert_eq!([0x02, 0x01], mem::transmute::<_, [u8; 2]>(i16_le::new(0x0102)));
+            assert_eq!(
+                [0x01, 0x02],
+                mem::transmute::<_, [u8; 2]>(i16_be::new(0x0102))
+            );
+            assert_eq!(
+                [0x02, 0x01],
+                mem::transmute::<_, [u8; 2]>(i16_le::new(0x0102))
+            );
 
             // i32
             assert_eq!(
@@ -469,8 +494,14 @@ mod tests {
             );
 
             // u16
-            assert_eq!([0x01, 0x02], mem::transmute::<_, [u8; 2]>(u16_be::new(0x0102)));
-            assert_eq!([0x02, 0x01], mem::transmute::<_, [u8; 2]>(u16_le::new(0x0102)));
+            assert_eq!(
+                [0x01, 0x02],
+                mem::transmute::<_, [u8; 2]>(u16_be::new(0x0102))
+            );
+            assert_eq!(
+                [0x02, 0x01],
+                mem::transmute::<_, [u8; 2]>(u16_le::new(0x0102))
+            );
 
             // u32
             assert_eq!(
@@ -539,8 +570,14 @@ mod tests {
             );
 
             // AtomicU16
-            assert_eq!([0x01, 0x02], mem::transmute::<_, [u8; 2]>(AtomicU16_be::new(0x0102)));
-            assert_eq!([0x02, 0x01], mem::transmute::<_, [u8; 2]>(AtomicU16_le::new(0x0102)));
+            assert_eq!(
+                [0x01, 0x02],
+                mem::transmute::<_, [u8; 2]>(AtomicU16_be::new(0x0102))
+            );
+            assert_eq!(
+                [0x02, 0x01],
+                mem::transmute::<_, [u8; 2]>(AtomicU16_le::new(0x0102))
+            );
 
             // AtomicU32
             assert_eq!(

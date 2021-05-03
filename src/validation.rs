@@ -1,16 +1,16 @@
 use crate::{Endian, Endianness};
-use core::{
-    convert::TryFrom,
-    num::{
-        NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64,
-        NonZeroU128
-    },
-};
 use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError, Unreachable};
 #[cfg(has_atomics)]
 use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU16, AtomicU32};
 #[cfg(has_atomics_64)]
 use core::sync::atomic::{AtomicI64, AtomicU64};
+use core::{
+    convert::TryFrom,
+    num::{
+        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128, NonZeroU16, NonZeroU32,
+        NonZeroU64,
+    },
+};
 
 macro_rules! impl_primitive {
     ($type:ty) => {
@@ -18,11 +18,14 @@ macro_rules! impl_primitive {
             type Error = Unreachable;
 
             #[inline]
-            unsafe fn check_bytes<'a>(value: *const Self, _: &mut C) -> Result<&'a Self, Self::Error> {
+            unsafe fn check_bytes<'a>(
+                value: *const Self,
+                _: &mut C,
+            ) -> Result<&'a Self, Self::Error> {
                 Ok(&*value)
             }
         }
-    }
+    };
 }
 
 impl_primitive!(i16);
@@ -40,12 +43,13 @@ impl<C: ?Sized, E: Endianness> CheckBytes<C> for Endian<char, E> {
     type Error = CharCheckError;
 
     #[inline]
-    unsafe fn check_bytes<'a>(value: *const Self, context: &mut C) -> Result<&'a Self, Self::Error> {
+    unsafe fn check_bytes<'a>(
+        value: *const Self,
+        context: &mut C,
+    ) -> Result<&'a Self, Self::Error> {
         let as_u32 = &*<Endian<u32, E>>::check_bytes(value.cast(), context)?;
         let c = as_u32.to_ne();
-        char::try_from(c).map_err(|_| CharCheckError {
-            invalid_value: c,
-        })?;
+        char::try_from(c).map_err(|_| CharCheckError { invalid_value: c })?;
         Ok(&*value)
     }
 }

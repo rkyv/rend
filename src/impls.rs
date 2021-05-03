@@ -1,9 +1,7 @@
 use crate::Primitive;
-use core::{
-    num::{
-        NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64,
-        NonZeroU128
-    },
+use core::num::{
+    NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128, NonZeroU16, NonZeroU32,
+    NonZeroU64,
 };
 
 macro_rules! impl_integer {
@@ -14,7 +12,7 @@ macro_rules! impl_integer {
                 self.swap_bytes()
             }
         }
-    }
+    };
 }
 
 impl_integer!(i16);
@@ -34,7 +32,7 @@ macro_rules! impl_float {
                 <$ne>::from_bits(self.to_bits().swap_bytes())
             }
         }
-    }
+    };
 }
 
 impl_float!(f32);
@@ -55,7 +53,7 @@ macro_rules! impl_nonzero {
                 unsafe { <$ne>::new_unchecked(self.get().swap_bytes()) }
             }
         }
-    }
+    };
 }
 
 impl_nonzero!(NonZeroI16);

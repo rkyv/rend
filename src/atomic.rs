@@ -1,7 +1,7 @@
 use crate::{Endian, Endianness};
 use core::{
-    sync::atomic::{AtomicI16, AtomicI32, AtomicI64, AtomicU16, AtomicU32, AtomicU64, Ordering},
     marker::PhantomData,
+    sync::atomic::{AtomicI16, AtomicI32, AtomicI64, AtomicU16, AtomicU32, AtomicU64, Ordering},
 };
 
 macro_rules! impl_atomic {
@@ -10,12 +10,18 @@ macro_rules! impl_atomic {
             /// Stores a value into the atomic integer if the current value is the same as the
             /// `current` value.
             #[inline]
-            pub fn compare_exchange(&self, current: $ne, new: $ne, success: Ordering, failure: Ordering) -> Result<$ne, $ne> {
+            pub fn compare_exchange(
+                &self,
+                current: $ne,
+                new: $ne,
+                success: Ordering,
+                failure: Ordering,
+            ) -> Result<$ne, $ne> {
                 match self.value.compare_exchange(
                     E::swap_native(current),
                     E::swap_native(new),
                     success,
-                    failure
+                    failure,
                 ) {
                     Ok(x) => Ok(E::swap_native(x)),
                     Err(x) => Err(E::swap_native(x)),
@@ -37,13 +43,15 @@ macro_rules! impl_atomic {
             /// Maximum with the current value.
             #[inline]
             pub fn fetch_max(&self, val: $ne, order: Ordering) -> $ne {
-                self.fetch_update(order, order, |x| Some(<$ne>::max(x, val))).unwrap()
+                self.fetch_update(order, order, |x| Some(<$ne>::max(x, val)))
+                    .unwrap()
             }
 
             /// Minimum with the current value.
             #[inline]
             pub fn fetch_min(&self, val: $ne, order: Ordering) -> $ne {
-                self.fetch_update(order, order, |x| Some(<$ne>::min(x, val))).unwrap()
+                self.fetch_update(order, order, |x| Some(<$ne>::min(x, val)))
+                    .unwrap()
             }
 
             /// Bitwise "nand" with the current value.
@@ -68,8 +76,15 @@ macro_rules! impl_atomic {
             /// Returns a `Result` of `Ok(previous_value)` if the function returned `Some(_)`, else
             /// `Err(previous_value)`.
             #[inline]
-            pub fn fetch_update<F: FnMut($ne) -> Option<$ne>>(&self, set_order: Ordering, fetch_order: Ordering, mut f: F) -> Result<$ne, $ne> {
-                self.value.fetch_update(set_order, fetch_order, |x| f(E::swap_native(x)).map(|x| E::swap_native(x)))
+            pub fn fetch_update<F: FnMut($ne) -> Option<$ne>>(
+                &self,
+                set_order: Ordering,
+                fetch_order: Ordering,
+                mut f: F,
+            ) -> Result<$ne, $ne> {
+                self.value.fetch_update(set_order, fetch_order, |x| {
+                    f(E::swap_native(x)).map(|x| E::swap_native(x))
+                })
             }
 
             /// Bitwise "xor" with the current value.
@@ -137,7 +152,7 @@ macro_rules! impl_atomic {
         impl<E: Endianness> ::std::panic::RefUnwindSafe for Endian<$ty, E> {}
 
         unsafe impl<E: Endianness> Sync for Endian<$ty, E> {}
-    }
+    };
 }
 
 impl_atomic!(AtomicI16, i16);

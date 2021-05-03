@@ -1,9 +1,7 @@
-use crate::{Endian, BigEndian, LittleEndian};
-use core::{
-    num::{
-        NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64,
-        NonZeroU128
-    },
+use crate::{BigEndian, Endian, LittleEndian};
+use core::num::{
+    NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128, NonZeroU16, NonZeroU32,
+    NonZeroU64,
 };
 #[cfg(has_atomics)]
 use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU16, AtomicU32};
