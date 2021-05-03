@@ -7,9 +7,9 @@ use core::{
     },
 };
 use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError, Unreachable};
-#[cfg(rend_atomic)]
+#[cfg(has_atomics)]
 use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU16, AtomicU32};
-#[cfg(rend_atomic_64)]
+#[cfg(has_atomics_64)]
 use core::sync::atomic::{AtomicI64, AtomicU64};
 
 macro_rules! impl_primitive {
@@ -35,19 +35,6 @@ impl_primitive!(u64);
 impl_primitive!(u128);
 impl_primitive!(f32);
 impl_primitive!(f64);
-
-#[cfg(rend_atomic)]
-impl_primitive!(AtomicI16);
-#[cfg(rend_atomic)]
-impl_primitive!(AtomicI32);
-#[cfg(rend_atomic_64)]
-impl_primitive!(AtomicI64);
-#[cfg(rend_atomic)]
-impl_primitive!(AtomicU16);
-#[cfg(rend_atomic)]
-impl_primitive!(AtomicU32);
-#[cfg(rend_atomic_64)]
-impl_primitive!(AtomicU64);
 
 impl<C: ?Sized, E: Endianness> CheckBytes<C> for Endian<char, E> {
     type Error = CharCheckError;
@@ -91,3 +78,16 @@ impl_nonzero!(NonZeroU16, u16);
 impl_nonzero!(NonZeroU32, u32);
 impl_nonzero!(NonZeroU64, u64);
 impl_nonzero!(NonZeroU128, u128);
+
+#[cfg(has_atomics)]
+impl_primitive!(AtomicI16);
+#[cfg(has_atomics)]
+impl_primitive!(AtomicI32);
+#[cfg(has_atomics_64)]
+impl_primitive!(AtomicI64);
+#[cfg(has_atomics)]
+impl_primitive!(AtomicU16);
+#[cfg(has_atomics)]
+impl_primitive!(AtomicU32);
+#[cfg(has_atomics_64)]
+impl_primitive!(AtomicU64);

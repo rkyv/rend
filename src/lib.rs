@@ -42,7 +42,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod alias;
-#[cfg(rend_atomic)]
+#[cfg(has_atomics)]
 mod atomic;
 mod endian;
 mod impls;
@@ -50,7 +50,7 @@ mod impls;
 mod validation;
 
 pub use alias::*;
-#[cfg(rend_atomic)]
+#[cfg(has_atomics)]
 pub use atomic::*;
 pub use endian::*;
 

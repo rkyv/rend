@@ -142,9 +142,9 @@ macro_rules! impl_atomic {
 
 impl_atomic!(AtomicI16, i16);
 impl_atomic!(AtomicI32, i32);
-#[cfg(rend_atomic_64)]
+#[cfg(has_atomics_64)]
 impl_atomic!(AtomicI64, i64);
 impl_atomic!(AtomicU16, u16);
 impl_atomic!(AtomicU32, u32);
-#[cfg(rend_atomic_64)]
+#[cfg(has_atomics_64)]
 impl_atomic!(AtomicU64, u64);
