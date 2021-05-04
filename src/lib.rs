@@ -354,6 +354,7 @@ impl_from!(
     u128,
     f32,
     f64,
+    char,
     NonZeroI16,
     NonZeroI32,
     NonZeroI64,
