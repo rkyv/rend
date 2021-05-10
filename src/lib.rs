@@ -42,6 +42,8 @@
 
 #[macro_use]
 mod impl_struct;
+#[macro_use]
+mod impl_traits;
 #[cfg(feature = "validation")]
 #[macro_use]
 mod impl_validation;
