@@ -2,13 +2,14 @@
 //!
 //! rend is a library that provides endian-aware primitives for Rust.
 //!
-//! It's similar in design to [`simple_endian`](https://crates.io/crates/simple_endian), with the
-//! exception that it's easily extendable to other endiannesses than the builtin `BigEndian` and
-//! `LittleEndian`. It also has support for more builtin types such as atomics and nonzero integers.
+//! It's similar in design to [`simple_endian`](https://crates.io/crates/simple_endian), but has
+//! support for more builtin types such as atomics and nonzero integers. It also has support for
+//! const functions since it does not rely on traits.
 //!
 //! rend does not provide endian-aware types for types that are inherently endian-agnostic, such as
-//! `bool` and `u8`. It also does not provide endian-aware types for types that have an
-//! architecture-dependent size, such as `isize` and `usize`.
+//! `bool` and `u8`. It does not provide endian-aware types for types that have an
+//! architecture-dependent size, such as `isize` and `usize`. It's also not extensible to custom
+//! types.
 //!
 //! rend is intended to be used to build portable types that can be shared between different
 //! architectures, especially with zero-copy deserialization.
@@ -39,406 +40,158 @@
 //! assert_eq!("0x12345678", format!("0x{:x}", big_int));
 //! ```
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
-mod alias;
-#[cfg(has_atomics)]
-mod atomic;
-mod endian;
-mod impls;
+#[macro_use]
+mod impl_struct;
 #[cfg(feature = "validation")]
-mod validation;
-
-pub use alias::*;
-#[cfg(has_atomics)]
-pub use atomic::*;
-pub use endian::*;
+#[macro_use]
+mod impl_validation;
 
 use core::{
-    cmp::Ordering,
     hash::{Hash, Hasher},
-    marker::PhantomData,
-    num::{
-        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128, NonZeroU16, NonZeroU32,
-        NonZeroU64,
-    },
+    num::{NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
 };
+#[cfg(has_atomics)]
+use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU16, AtomicU32, Ordering};
+#[cfg(has_atomics_64)]
+use core::sync::atomic::{AtomicI64, AtomicU64};
 
-/// A type that can convert between big-endian and little-endian.
-pub trait Primitive: Copy {
-    /// Swaps from little-endian to big-endian and vice-versa.
-    fn swap_endian(self) -> Self;
-}
-
-/// A type that can convert between native endianness and a target endianness.
-pub trait Endianness {
-    /// Swaps from native-endian to target-endian and vice-versa.
-    fn swap_native<T: Primitive>(value: T) -> T;
-}
-
-/// A type stored with a particular endianness
+#[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct Endian<T, E> {
+pub struct LittleEndian<T> {
     value: T,
-    _phantom: PhantomData<E>,
 }
 
-impl<T: Primitive, E: Endianness> Endian<T, E> {
-    /// Creates a new `Endian` from a native-endian value
-    #[inline]
-    pub fn new(native: T) -> Self {
-        Self {
-            value: E::swap_native(native),
-            _phantom: PhantomData,
-        }
-    }
-
-    /// Converts an `Endian` to a native-endian value
-    #[inline]
-    pub fn to_ne(self) -> T {
-        E::swap_native(self.value)
-    }
-
-    #[inline]
-    fn convert(&mut self) {
-        self.value = E::swap_native(self.value);
-    }
+#[derive(Clone, Copy)]
+#[repr(transparent)]
+pub struct BigEndian<T> {
+    value: T,
 }
 
-macro_rules! impl_unop {
-    ($trait:ident, $fn:ident) => {
-        impl<T: Primitive + core::ops::$trait, E: Endianness> core::ops::$trait for Endian<T, E> {
-            type Output = <T as core::ops::$trait>::Output;
-
-            #[inline]
-            fn $fn(self) -> Self::Output {
-                self.to_ne().$fn()
-            }
-        }
-    };
+pub trait AtomicPrimitive {
+    type Primitive;
 }
 
-macro_rules! impl_from {
-    ($($prim:ty),*) => {
-        impl<T: Primitive, E: Endianness> From<T> for Endian<T, E> {
-            #[inline]
-            fn from(value: T) -> Self {
-                Self::new(value)
-            }
+pub type Primitive<T> = <T as AtomicPrimitive>::Primitive;
+
+#[cfg(has_atomics)]
+macro_rules! impl_atomic_primitive {
+    ($ty:ident, $prim:ident) => {
+        impl AtomicPrimitive for $ty {
+            type Primitive = $prim;
         }
-        $(
-            impl<E: Endianness> From<Endian<$prim, E>> for $prim {
-                #[inline]
-                fn from(value: Endian<$prim, E>) -> Self {
-                    value.to_ne()
-                }
-            }
-        )*
     }
 }
 
-macro_rules! impl_binop {
-    (@impl $trait:ident::$fn:ident($self:ident, $other:ident: $in:ty) -> $out:ty { $expr:expr }) => {
-        impl<T: Primitive + ::core::ops::$trait<Output = T>, E: Endianness> ::core::ops::$trait<$in> for Endian<T, E> {
-            type Output = $out;
+#[cfg(has_atomics)]
+impl_atomic_primitive!(AtomicI16, i16);
+#[cfg(has_atomics)]
+impl_atomic_primitive!(AtomicI32, i32);
+#[cfg(has_atomics_64)]
+impl_atomic_primitive!(AtomicI64, i64);
+#[cfg(has_atomics)]
+impl_atomic_primitive!(AtomicU16, u16);
+#[cfg(has_atomics)]
+impl_atomic_primitive!(AtomicU32, u32);
+#[cfg(has_atomics_64)]
+impl_atomic_primitive!(AtomicU64, u64);
 
-            #[inline]
-            fn $fn($self, $other: $in) -> Self::Output {
-                $expr
-            }
-        }
-    };
-    (@prim [$prim:ty] $trait:ident::$fn:ident($self:ident, $other:ident: $in:ty) -> T { $expr:expr }) => {
-        impl<E: Endianness> ::core::ops::$trait<$in> for $prim
-        where
-            $prim: ::core::ops::$trait,
+macro_rules! swap_endian {
+    (@LittleEndian $expr:expr) => {
         {
-            type Output = $prim;
-
-            #[inline]
-            fn $fn($self, $other: $in) -> Self::Output {
+            #[cfg(target_endian = "little")]
+            {
+                $expr
+            }
+            #[cfg(target_endian = "big")]
+            {
+                $expr.swap_bytes()
+            }
+        }
+    };
+    (@BigEndian $expr:expr) => {
+        {
+            #[cfg(target_endian = "little")]
+            {
+                $expr.swap_bytes()
+            }
+            #[cfg(target_endian = "big")]
+            {
                 $expr
             }
         }
     };
-    (@prims [$($prim:ty),*] $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) -> T { $expr:expr }) => {
-        $(
-            impl_binop!(@prim [$prim]
-                $trait::$fn($self, $other: Endian<$prim, E>) -> T { $expr }
-            );
-            impl_binop!(@prim [$prim]
-                $trait::$fn($self, $other: &'_ Endian<$prim, E>) -> T { $expr }
-            );
-        )*
+}
+
+macro_rules! swap_bytes {
+    (@signed_int $endian:ident<$ne:ty> $value:expr) => {
+        swap_endian!(@$endian $value)
     };
-    (@class int $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) -> T { $expr:expr }) => {
-        impl_binop!(@prims [i16, i32, i64, i128, u16, u32, u64, u128]
-            $trait::$fn($self, $other: Endian<T, E>) -> T { $expr }
-        );
+    (@unsigned_int $endian:ident<$ne:ty> $value:expr) => {
+        swap_endian!(@$endian $value)
     };
-    (@class float $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) -> T { $expr:expr }) => {
-        impl_binop!(@prims [f32, f64]
-            $trait::$fn($self, $other: Endian<T, E>) -> T { $expr }
-        );
+    (@float $endian:ident<$ne:ty> $value:expr) => {
+        <$ne>::from_bits(swap_endian!(@$endian $value.to_bits()))
     };
-    (@class nonzero $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) -> T { $expr:expr }) => {
-        impl_binop!(@prims [NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128]
-            $trait::$fn($self, $other: Endian<T, E>) -> T { $expr }
-        );
+    (@char $endian:ident<$ne:ty> $value:expr) => {
+        unsafe { ::core::char::from_u32_unchecked(swap_endian!(@$endian $value as u32)) }
     };
-    ($trait:ident::$fn:ident) => {
-        impl_binop!($trait::$fn [int, float, nonzero]);
+    (@nonzero $endian:ident<$ne:ty> $value:expr) => {
+        unsafe { <$ne>::new_unchecked(swap_endian!(@$endian $value.get())) }
     };
-    ($trait:ident::$fn:ident [$($class:ident),*]) => {
-        impl_binop!(@impl
-            $trait::$fn(self, other: Endian<T, E>) -> T {
-                self.to_ne().$fn(other.to_ne())
-            }
-        );
-        impl_binop!(@impl
-            $trait::$fn(self, other: &'_ Endian<T, E>) -> T {
-                self.to_ne().$fn(other.to_ne())
-            }
-        );
-        impl_binop!(@impl
-            $trait::$fn(self, other: T) -> T {
-                self.to_ne().$fn(other)
-            }
-        );
-        impl_binop!(@impl
-            $trait::$fn(self, other: &'_ T) -> T {
-                self.to_ne().$fn(*other)
-            }
-        );
-        $(
-            impl_binop!(@class $class
-                $trait::$fn(self, other: Endian<T, E>) -> T {
-                    self.$fn(other.to_ne())
-                }
-            );
-        )*
+    (@atomic $endian:ident<$ne:ty> $value:expr) => {
+        swap_endian!(@$endian $value)
     };
 }
 
-macro_rules! impl_binassign {
-    (@impl $trait:ident::$fn:ident($self:ident, $other:ident: $in:ty) { $stmt:stmt }) => {
-        impl<T: Primitive + ::core::ops::$trait<T>, E: Endianness> ::core::ops::$trait<$in> for Endian<T, E> {
-            #[inline]
-            fn $fn(&mut $self, $other: $in) {
-                $self.convert();
-                $stmt
-                $self.convert();
-            }
-        }
+macro_rules! impl_endian {
+    (@$class:ident $ne:ty, $le:ident, $be:ident) => {
+        impl_endian!(@$class LittleEndian<$ne> as $le);
+        impl_endian!(@$class BigEndian<$ne> as $be);
     };
-    (@prims [$($prim:ty),*] $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) { $stmt:stmt }) => {
-        $(
-            impl<E: Endianness> ::core::ops::$trait<Endian<$prim, E>> for $prim
-            where
-                $prim: ::core::ops::$trait,
-            {
-                #[inline]
-                fn $fn(&mut $self, $other: Endian<$prim, E>) {
-                    $stmt
-                }
-            }
-        )*
-    };
-    (@class int $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) { $stmt:stmt }) => {
-        impl_binassign!(@prims [i16, i32, i64, i128, u16, u32, u64, u128]
-            $trait::$fn($self, $other: Endian<T, E>) { $stmt }
-        );
-    };
-    (@class float $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) { $stmt:stmt }) => {
-        impl_binassign!(@prims [f32, f64]
-            $trait::$fn($self, $other: Endian<T, E>) { $stmt }
-        );
-    };
-    (@class nonzero $trait:ident::$fn:ident($self:ident, $other:ident: Endian<T, E>) { $stmt:stmt }) => {
-        impl_binassign!(@prims [NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128]
-            $trait::$fn($self, $other: Endian<T, E>) { $stmt }
-        );
-    };
-    ($trait:ident::$fn:ident) => {
-        impl_binassign!($trait::$fn [int, float, nonzero]);
-    };
-    ($trait:ident::$fn:ident [$($class:ident),*]) => {
-        impl_binassign!(@impl
-            $trait::$fn(self, other: Endian<T, E>) {
-                self.value.$fn(other.to_ne())
-            }
-        );
-        impl_binassign!(@impl
-            $trait::$fn(self, other: &'_ Endian<T, E>) {
-                self.value.$fn(other.to_ne())
-            }
-        );
-        impl_binassign!(@impl
-            $trait::$fn(self, other: T) {
-                self.value.$fn(other)
-            }
-        );
-        impl_binassign!(@impl
-            $trait::$fn(self, other: &'_ T) {
-                self.value.$fn(*other)
-            }
-        );
-        $(
-            impl_binassign!(@class $class
-                $trait::$fn(self, other: Endian<T, E>) {
-                    self.$fn(other.to_ne())
-                }
-            );
-        )*
+    (@$class:ident $endian:ident<$ne:ty> as $alias:ident) => {
+        #[allow(non_camel_case_types)]
+        pub type $alias = $endian<$ne>;
+        impl_struct!(@$class $endian<$ne>);
+        #[cfg(feature = "validation")]
+        impl_validation!(@$class $endian: $te, $ne);
     };
 }
 
-macro_rules! impl_fmt {
-    ($trait:ident) => {
-        impl<T: Primitive + core::fmt::$trait, E: Endianness> core::fmt::$trait for Endian<T, E> {
-            #[inline]
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                self.to_ne().fmt(f)
-            }
-        }
-    };
-}
+impl_endian!(@signed_int i16, i16_le, i16_be);
+impl_endian!(@signed_int i32, i32_le, i32_be);
+impl_endian!(@signed_int i64, i64_le, i64_be);
+impl_endian!(@signed_int i128, i128_le, i128_be);
+impl_endian!(@unsigned_int u16, u16_le, u16_be);
+impl_endian!(@unsigned_int u32, u32_le, u32_be);
+impl_endian!(@unsigned_int u64, u64_le, u64_be);
+impl_endian!(@unsigned_int u128, u128_le, u128_be);
 
-impl_binop!(Add::add [int, float]);
-impl_binassign!(AddAssign::add_assign [int, float]);
-impl_fmt!(Binary);
-impl_binop!(BitAnd::bitand[int]);
-impl_binassign!(BitAndAssign::bitand_assign[int]);
-impl_binop!(BitOr::bitor [int, nonzero]);
-impl_binassign!(BitOrAssign::bitor_assign [int, nonzero]);
-impl_binop!(BitXor::bitxor[int]);
-impl_binassign!(BitXorAssign::bitxor_assign[int]);
+impl_endian!(@float f32, f32_le, f32_be);
+impl_endian!(@float f64, f64_le, f64_be);
 
-impl<T: Clone, E> Clone for Endian<T, E> {
-    #[inline]
-    fn clone(&self) -> Self {
-        Endian {
-            value: self.value.clone(),
-            _phantom: PhantomData,
-        }
-    }
-}
+impl_endian!(@char char, char_le, char_be);
 
-impl<T: Copy, E> Copy for Endian<T, E> {}
+impl_endian!(@nonzero NonZeroI16, NonZeroI16_le, NonZeroI16_be);
+impl_endian!(@nonzero NonZeroI32, NonZeroI32_le, NonZeroI32_be);
+impl_endian!(@nonzero NonZeroI64, NonZeroI64_le, NonZeroI64_be);
+impl_endian!(@nonzero NonZeroI128, NonZeroI128_le, NonZeroI128_be);
+impl_endian!(@nonzero NonZeroU16, NonZeroU16_le, NonZeroU16_be);
+impl_endian!(@nonzero NonZeroU32, NonZeroU32_le, NonZeroU32_be);
+impl_endian!(@nonzero NonZeroU64, NonZeroU64_le, NonZeroU64_be);
+impl_endian!(@nonzero NonZeroU128, NonZeroU128_le, NonZeroU128_be);
 
-impl_fmt!(Debug);
-
-impl<T: Primitive, E: Endianness> Default for Endian<T, E>
-where
-    T: Default,
-{
-    fn default() -> Self {
-        Self::new(T::default())
-    }
-}
-
-impl_fmt!(Display);
-impl_binop!(Div::div [int, float]);
-impl_binassign!(DivAssign::div_assign [int, float]);
-
-impl<T: Eq, E> Eq for Endian<T, E> {}
-
-impl_from!(
-    i16,
-    i32,
-    i64,
-    i128,
-    u16,
-    u32,
-    u64,
-    u128,
-    f32,
-    f64,
-    char,
-    NonZeroI16,
-    NonZeroI32,
-    NonZeroI64,
-    NonZeroI128,
-    NonZeroU16,
-    NonZeroU32,
-    NonZeroU64,
-    NonZeroU128
-);
-
-impl<T: Primitive + Hash, E: Endianness> Hash for Endian<T, E> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.to_ne().hash(state);
-    }
-}
-
-impl_fmt!(LowerExp);
-impl_fmt!(LowerHex);
-impl_binop!(Mul::mul [int, float]);
-impl_binassign!(MulAssign::mul_assign [int, float]);
-impl_unop!(Neg, neg);
-impl_unop!(Not, not);
-impl_fmt!(Octal);
-
-impl<T: Primitive + Ord, E: Endianness> Ord for Endian<T, E> {
-    #[inline]
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.to_ne().cmp(&other.to_ne())
-    }
-}
-
-impl<T: PartialEq, E> PartialEq for Endian<T, E> {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.value.eq(&other.value)
-    }
-}
-
-impl<T: Primitive + PartialEq, E: Endianness> PartialEq<T> for Endian<T, E> {
-    #[inline]
-    fn eq(&self, other: &T) -> bool {
-        self.to_ne().eq(other)
-    }
-}
-
-impl<T: Primitive + PartialOrd, E: Endianness> PartialOrd for Endian<T, E> {
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.to_ne().partial_cmp(&other.to_ne())
-    }
-}
-
-impl<T: Primitive + PartialOrd, E: Endianness> PartialOrd<T> for Endian<T, E> {
-    #[inline]
-    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
-        self.to_ne().partial_cmp(other)
-    }
-}
-
-impl<T: Primitive + core::iter::Product, E: Endianness> core::iter::Product for Endian<T, E> {
-    #[inline]
-    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        Self::new(iter.map(|x| x.to_ne()).product())
-    }
-}
-
-impl_binop!(Rem::rem [int, float]);
-impl_binassign!(RemAssign::rem_assign [int, float]);
-impl_binop!(Shl::shl[int]);
-impl_binassign!(ShlAssign::shl_assign[int]);
-impl_binop!(Shr::shr[int]);
-impl_binassign!(ShrAssign::shr_assign[int]);
-impl_binop!(Sub::sub [int, float]);
-impl_binassign!(SubAssign::sub_assign [int, float]);
-
-impl<T: Primitive + core::iter::Sum, E: Endianness> core::iter::Sum for Endian<T, E> {
-    #[inline]
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        Self::new(iter.map(|x| x.to_ne()).sum())
-    }
-}
-
-impl_fmt!(UpperExp);
-impl_fmt!(UpperHex);
+#[cfg(has_atomics)]
+impl_endian!(@atomic AtomicI16, AtomicI16_le, AtomicI16_be);
+#[cfg(has_atomics)]
+impl_endian!(@atomic AtomicI32, AtomicI32_le, AtomicI32_be);
+#[cfg(has_atomics_64)]
+impl_endian!(@atomic AtomicI64, AtomicI64_le, AtomicI64_be);
+#[cfg(has_atomics)]
+impl_endian!(@atomic AtomicU16, AtomicU16_le, AtomicU16_be);
+#[cfg(has_atomics)]
+impl_endian!(@atomic AtomicU32, AtomicU32_le, AtomicU32_be);
+#[cfg(has_atomics_64)]
+impl_endian!(@atomic AtomicU64, AtomicU64_le, AtomicU64_be);
 
 #[cfg(test)]
 mod tests {
