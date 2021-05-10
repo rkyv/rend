@@ -48,14 +48,17 @@ mod impl_traits;
 #[macro_use]
 mod impl_validation;
 
-use core::{
-    hash::{Hash, Hasher},
-    num::{NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
-};
 #[cfg(has_atomics)]
 use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU16, AtomicU32, Ordering};
 #[cfg(has_atomics_64)]
 use core::sync::atomic::{AtomicI64, AtomicU64};
+use core::{
+    hash::{Hash, Hasher},
+    num::{
+        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128, NonZeroU16, NonZeroU32,
+        NonZeroU64,
+    },
+};
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
@@ -81,7 +84,7 @@ macro_rules! impl_atomic_primitive {
         impl AtomicPrimitive for $ty {
             type Primitive = $prim;
         }
-    }
+    };
 }
 
 #[cfg(has_atomics)]
@@ -98,30 +101,26 @@ impl_atomic_primitive!(AtomicU32, u32);
 impl_atomic_primitive!(AtomicU64, u64);
 
 macro_rules! swap_endian {
-    (@LittleEndian $expr:expr) => {
+    (@LittleEndian $expr:expr) => {{
+        #[cfg(target_endian = "little")]
         {
-            #[cfg(target_endian = "little")]
-            {
-                $expr
-            }
-            #[cfg(target_endian = "big")]
-            {
-                $expr.swap_bytes()
-            }
+            $expr
         }
-    };
-    (@BigEndian $expr:expr) => {
+        #[cfg(target_endian = "big")]
         {
-            #[cfg(target_endian = "little")]
-            {
-                $expr.swap_bytes()
-            }
-            #[cfg(target_endian = "big")]
-            {
-                $expr
-            }
+            $expr.swap_bytes()
         }
-    };
+    }};
+    (@BigEndian $expr:expr) => {{
+        #[cfg(target_endian = "little")]
+        {
+            $expr.swap_bytes()
+        }
+        #[cfg(target_endian = "big")]
+        {
+            $expr
+        }
+    }};
 }
 
 macro_rules! swap_bytes {

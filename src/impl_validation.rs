@@ -23,7 +23,7 @@ macro_rules! impl_validation {
             ) -> Result<&'a Self, Self::Error> {
                 let as_u32 = &*<$tu32>::check_bytes(value.cast(), context)?;
                 let c = as_u32.to_ne();
-                char::try_from(c).map_err(|_| CharCheckError { invalid_value: c})?;
+                char::try_from(c).map_err(|_| CharCheckError { invalid_value: c })?;
                 Ok(&*value)
             }
         }

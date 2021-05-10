@@ -147,7 +147,7 @@ macro_rules! impl_default {
 macro_rules! impl_eq {
     () => {
         impl Eq for Endian {}
-    }
+    };
 }
 
 macro_rules! impl_from {
@@ -157,7 +157,7 @@ macro_rules! impl_from {
                 Self::new(value)
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_hash {
@@ -167,7 +167,7 @@ macro_rules! impl_hash {
                 self.to_ne().hash(state);
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_ord {
@@ -178,7 +178,7 @@ macro_rules! impl_ord {
                 self.to_ne().cmp(&other.to_ne())
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_partial_eq {
@@ -189,14 +189,14 @@ macro_rules! impl_partial_eq {
                 self.value.eq(&other.value)
             }
         }
-        
+
         impl PartialEq<Native> for Endian {
             #[inline]
             fn eq(&self, other: &Native) -> bool {
                 self.to_ne().eq(other)
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_partial_ord {
@@ -207,14 +207,14 @@ macro_rules! impl_partial_ord {
                 self.to_ne().partial_cmp(&other.to_ne())
             }
         }
-        
+
         impl PartialOrd<Native> for Endian {
             #[inline]
             fn partial_cmp(&self, other: &Native) -> Option<::core::cmp::Ordering> {
                 self.to_ne().partial_cmp(other)
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_product {
@@ -225,7 +225,7 @@ macro_rules! impl_product {
                 Self::new(iter.map(|x| x.to_ne()).product())
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_sum {
@@ -236,5 +236,5 @@ macro_rules! impl_sum {
                 Self::new(iter.map(|x| x.to_ne()).sum())
             }
         }
-    }
+    };
 }
