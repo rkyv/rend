@@ -5,7 +5,7 @@ macro_rules! impl_unop {
 
             #[inline]
             fn $fn(self) -> Self::Output {
-                self.to_ne().$fn()
+                self.value().$fn()
             }
         }
     };
@@ -38,7 +38,7 @@ macro_rules! impl_binop {
 
             #[inline]
             fn $fn(self, other: $other) -> Self::Output {
-                self.to_ne().$fn(other)
+                self.value().$fn(other)
             }
         }
 
@@ -47,7 +47,7 @@ macro_rules! impl_binop {
 
             #[inline]
             fn $fn(self, other: $self) -> Self::Output {
-                self.$fn(other.to_ne())
+                self.$fn(other.value())
             }
         }
     };
@@ -57,7 +57,7 @@ macro_rules! impl_binop {
 
             #[inline]
             fn $fn(self, other: $other) -> Self::Output {
-                self.to_ne().$fn(other.to_ne())
+                self.value().$fn(other.value())
             }
         }
     };
@@ -78,7 +78,7 @@ macro_rules! impl_binassign {
             #[inline]
             fn $fn(&mut self, other: Endian) {
                 self.swap_endian();
-                self.value.$fn(other.to_ne());
+                self.value.$fn(other.value());
                 self.swap_endian();
             }
         }
@@ -96,7 +96,7 @@ macro_rules! impl_binassign {
             #[inline]
             fn $fn(&mut self, other: &'_ Endian) {
                 self.swap_endian();
-                self.value.$fn(other.to_ne());
+                self.value.$fn(other.value());
                 self.swap_endian();
             }
         }
@@ -115,7 +115,7 @@ macro_rules! impl_binassign {
             #[inline]
             fn $fn(&mut self, other: Endian) {
                 self.swap_endian();
-                self.value.$fn(other.to_ne());
+                self.value.$fn(other.value());
                 self.swap_endian();
             }
         }
@@ -127,7 +127,7 @@ macro_rules! impl_fmt {
         impl ::core::fmt::$trait for Endian {
             #[inline]
             fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                ::core::fmt::$trait::fmt(&self.to_ne(), f)
+                ::core::fmt::$trait::fmt(&self.value(), f)
             }
         }
     };
@@ -164,7 +164,7 @@ macro_rules! impl_hash {
     () => {
         impl Hash for Endian {
             fn hash<H: Hasher>(&self, state: &mut H) {
-                self.to_ne().hash(state);
+                self.value().hash(state);
             }
         }
     };
@@ -175,7 +175,7 @@ macro_rules! impl_ord {
         impl Ord for Endian {
             #[inline]
             fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-                self.to_ne().cmp(&other.to_ne())
+                self.value().cmp(&other.value())
             }
         }
     };
@@ -193,7 +193,7 @@ macro_rules! impl_partial_eq {
         impl PartialEq<Native> for Endian {
             #[inline]
             fn eq(&self, other: &Native) -> bool {
-                self.to_ne().eq(other)
+                self.value().eq(other)
             }
         }
     };
@@ -204,14 +204,14 @@ macro_rules! impl_partial_ord {
         impl PartialOrd for Endian {
             #[inline]
             fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
-                self.to_ne().partial_cmp(&other.to_ne())
+                self.value().partial_cmp(&other.value())
             }
         }
 
         impl PartialOrd<Native> for Endian {
             #[inline]
             fn partial_cmp(&self, other: &Native) -> Option<::core::cmp::Ordering> {
-                self.to_ne().partial_cmp(other)
+                self.value().partial_cmp(other)
             }
         }
     };
@@ -222,7 +222,7 @@ macro_rules! impl_product {
         impl ::core::iter::Product for Endian {
             #[inline]
             fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-                Self::new(iter.map(|x| x.to_ne()).product())
+                Self::new(iter.map(|x| x.value()).product())
             }
         }
     };
@@ -233,7 +233,7 @@ macro_rules! impl_sum {
         impl ::core::iter::Sum for Endian {
             #[inline]
             fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-                Self::new(iter.map(|x| x.to_ne()).sum())
+                Self::new(iter.map(|x| x.value()).sum())
             }
         }
     };

@@ -59,6 +59,14 @@ use core::{
         NonZeroU64,
     },
 };
+#[cfg(feature = "validation")]
+use bytecheck::{CheckBytes, CharCheckError, NonZeroCheckError, Unreachable};
+
+#[derive(Clone, Copy)]
+#[repr(transparent)]
+pub struct NativeEndian<T> {
+    pub value: T,
+}
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
@@ -101,6 +109,9 @@ impl_atomic_primitive!(AtomicU32, u32);
 impl_atomic_primitive!(AtomicU64, u64);
 
 macro_rules! swap_endian {
+    (@NativeEndian $expr:expr) => {{
+        $expr
+    }};
     (@LittleEndian $expr:expr) => {{
         #[cfg(target_endian = "little")]
         {
@@ -145,16 +156,20 @@ macro_rules! swap_bytes {
 }
 
 macro_rules! impl_endian {
-    (@$class:ident $ne:ty, $le:ident, $be:ident) => {
-        impl_endian!(@$class LittleEndian<$ne> as $le);
-        impl_endian!(@$class BigEndian<$ne> as $be);
+    (@$class:ident $ne:ty, $le:ident, $be:ident $(= $prim:ident)?) => {
+        impl_endian!(@$class NativeEndian<$ne> $(= $prim)?);
+        impl_endian!(@$class LittleEndian<$ne> as $le $(= $prim)?);
+        impl_endian!(@$class BigEndian<$ne> as $be $(= $prim)?);
     };
-    (@$class:ident $endian:ident<$ne:ty> as $alias:ident) => {
+    (@$class:ident $endian:ident<$ne:ty> as $alias:ident $(= $prim:ident)?) => {
+        impl_endian!(@$class $endian<$ne> $(= $prim)?);
         #[allow(non_camel_case_types)]
         pub type $alias = $endian<$ne>;
+    };
+    (@$class:ident $endian:ident<$ne:ty> $(= $prim:ident)?) => {
         impl_struct!(@$class $endian<$ne>);
         #[cfg(feature = "validation")]
-        impl_validation!(@$class $endian: $te, $ne);
+        impl_validation!(@$class $endian<$ne> $(= $prim)?);
     };
 }
 
@@ -172,14 +187,14 @@ impl_endian!(@float f64, f64_le, f64_be);
 
 impl_endian!(@char char, char_le, char_be);
 
-impl_endian!(@nonzero NonZeroI16, NonZeroI16_le, NonZeroI16_be);
-impl_endian!(@nonzero NonZeroI32, NonZeroI32_le, NonZeroI32_be);
-impl_endian!(@nonzero NonZeroI64, NonZeroI64_le, NonZeroI64_be);
-impl_endian!(@nonzero NonZeroI128, NonZeroI128_le, NonZeroI128_be);
-impl_endian!(@nonzero NonZeroU16, NonZeroU16_le, NonZeroU16_be);
-impl_endian!(@nonzero NonZeroU32, NonZeroU32_le, NonZeroU32_be);
-impl_endian!(@nonzero NonZeroU64, NonZeroU64_le, NonZeroU64_be);
-impl_endian!(@nonzero NonZeroU128, NonZeroU128_le, NonZeroU128_be);
+impl_endian!(@nonzero NonZeroI16, NonZeroI16_le, NonZeroI16_be = i16);
+impl_endian!(@nonzero NonZeroI32, NonZeroI32_le, NonZeroI32_be = i32);
+impl_endian!(@nonzero NonZeroI64, NonZeroI64_le, NonZeroI64_be = i64);
+impl_endian!(@nonzero NonZeroI128, NonZeroI128_le, NonZeroI128_be = i128);
+impl_endian!(@nonzero NonZeroU16, NonZeroU16_le, NonZeroU16_be = u16);
+impl_endian!(@nonzero NonZeroU32, NonZeroU32_le, NonZeroU32_be = u32);
+impl_endian!(@nonzero NonZeroU64, NonZeroU64_le, NonZeroU64_be = u64);
+impl_endian!(@nonzero NonZeroU128, NonZeroU128_le, NonZeroU128_be = u128);
 
 #[cfg(has_atomics)]
 impl_endian!(@atomic AtomicI16, AtomicI16_le, AtomicI16_be);

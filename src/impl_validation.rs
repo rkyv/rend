@@ -1,6 +1,6 @@
 macro_rules! impl_validation {
-    (@always: $te:ident) => {
-        impl<C: ?Sized> CheckBytes<C> for $te {
+    (@always $endian:ident<$ne:ty>) => {
+        impl<C: ?Sized> CheckBytes<C> for $endian<$ne> {
             type Error = Unreachable;
 
             #[inline]
@@ -12,8 +12,17 @@ macro_rules! impl_validation {
             }
         }
     };
-    (@char: $te:ident, $teu32:ty) => {
-        impl<C: ?Sized> CheckBytes<C> for $te {
+    (@signed_int $endian:ident<$ne:ty>) => {
+        impl_validation!(@always $endian<$ne>);
+    };
+    (@unsigned_int $endian:ident<$ne:ty>) => {
+        impl_validation!(@always $endian<$ne>);
+    };
+    (@float $endian:ident<$ne:ty>) => {
+        impl_validation!(@always $endian<$ne>);
+    };
+    (@char $endian:ident<$ne:ty>) => {
+        impl<C: ?Sized> CheckBytes<C> for $endian<$ne> {
             type Error = CharCheckError;
 
             #[inline]
@@ -21,15 +30,15 @@ macro_rules! impl_validation {
                 value: *const Self,
                 context: &mut C,
             ) -> Result<&'a Self, Self::Error> {
-                let as_u32 = &*<$tu32>::check_bytes(value.cast(), context)?;
-                let c = as_u32.to_ne();
-                char::try_from(c).map_err(|_| CharCheckError { invalid_value: c })?;
+                let as_u32 = &*$endian::<u32>::check_bytes(value.cast(), context)?;
+                let c = as_u32.value();
+                <$ne>::from_u32(c).ok_or_else(|| CharCheckError { invalid_value: c })?;
                 Ok(&*value)
             }
         }
     };
-    (@nonzero: $te:ident, $prim:ty) => {
-        impl<C: ?Sized> CheckBytes<C> for $te {
+    (@nonzero $endian:ident<$ne:ty> = $prim:ty) => {
+        impl<C: ?Sized> CheckBytes<C> for $endian<$ne> {
             type Error = NonZeroCheckError;
 
             #[inline]
@@ -37,12 +46,15 @@ macro_rules! impl_validation {
                 value: *const Self,
                 context: &mut C,
             ) -> Result<&'a Self, Self::Error> {
-                if *$prim::check_bytes(value.cast(), context)? == 0 {
+                if $endian::<$prim>::check_bytes(value.cast(), context)?.value() == 0 {
                     Err(NonZeroCheckError::IsZero)
                 } else {
                     Ok(&*value)
                 }
             }
         }
+    };
+    (@atomic $endian:ident<$ne:ty>) => {
+        impl_validation!(@always $endian<$ne>);
     };
 }

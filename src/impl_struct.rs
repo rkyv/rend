@@ -11,8 +11,26 @@ macro_rules! impl_struct {
 
             /// Converts the value to a native-endian value
             #[inline]
-            pub $($const)? fn to_ne(self) -> $ne {
+            pub $($const)? fn value(self) -> $ne {
                 swap_bytes!(@$class $endian<$ne> self.value)
+            }
+
+            /// Creates a `NativeEndian` from this value
+            #[inline]
+            pub $($const)? fn to_ne(self) -> NativeEndian<$ne> {
+                NativeEndian::<$ne>::new(self.value())
+            }
+
+            /// Creates a `LittleEndian` from this value
+            #[inline]
+            pub $($const)? fn to_le(self) -> LittleEndian<$ne> {
+                LittleEndian::<$ne>::new(self.value())
+            }
+
+            /// Creates a `BigEndian` from this value
+            #[inline]
+            pub $($const)? fn to_be(self) -> BigEndian<$ne> {
+                BigEndian::<$ne>::new(self.value())
             }
 
             #[inline]
