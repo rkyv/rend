@@ -45,6 +45,7 @@
 //! assert_eq!("0x12345678", format!("0x{:x}", big_int));
 //! ```
 
+#![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
 #![deny(missing_crate_level_docs)]
 
