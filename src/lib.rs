@@ -15,13 +15,15 @@
 //! architectures, especially with zero-copy deserialization.
 //!
 //! ## Example:
-//!
 //! ```
 //! use rend::*;
 //!
 //! let little_int = i32_le::new(0x12345678);
 //! // Internal representation is little-endian
-//! assert_eq!([0x78, 0x56, 0x34, 0x12], unsafe { ::core::mem::transmute::<_, [u8; 4]>(little_int) });
+//! assert_eq!(
+//!     [0x78, 0x56, 0x34, 0x12],
+//!     unsafe { ::core::mem::transmute::<_, [u8; 4]>(little_int) }
+//! );
 //!
 //! // Can also be made with `.into()`
 //! let little_int: i32_le = 0x12345678.into();
@@ -31,7 +33,10 @@
 //!
 //! let big_int = i32_be::new(0x12345678);
 //! // Internal representation is big-endian
-//! assert_eq!([0x12, 0x34, 0x56, 0x78], unsafe { ::core::mem::transmute::<_, [u8; 4]>(big_int) });
+//! assert_eq!(
+//!     [0x12, 0x34, 0x56, 0x78],
+//!     unsafe { ::core::mem::transmute::<_, [u8; 4]>(big_int) }
+//! );
 //!
 //! // Can also be made with `.into()`
 //! let big_int: i32_be = 0x12345678.into();
@@ -39,6 +44,9 @@
 //! assert_eq!("305419896", format!("{}", big_int));
 //! assert_eq!("0x12345678", format!("0x{:x}", big_int));
 //! ```
+
+#![deny(missing_docs)]
+#![deny(missing_crate_level_docs)]
 
 #[macro_use]
 mod impl_struct;
@@ -48,6 +56,8 @@ mod impl_traits;
 #[macro_use]
 mod impl_validation;
 
+#[cfg(feature = "validation")]
+use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError, Unreachable};
 #[cfg(has_atomics)]
 use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU16, AtomicU32, Ordering};
 #[cfg(has_atomics_64)]
@@ -59,54 +69,31 @@ use core::{
         NonZeroU64,
     },
 };
-#[cfg(feature = "validation")]
-use bytecheck::{CheckBytes, CharCheckError, NonZeroCheckError, Unreachable};
 
+/// A wrapper for native-endian types.
+///
+/// This is mostly useful for `const` conversions to big- and little-endian types in contexts where
+/// type inference is required. Because it's native-endian, the inner value is publicly exposed.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct NativeEndian<T> {
+    /// The value of the type
     pub value: T,
 }
 
+/// A wrapper for big-endian types.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct LittleEndian<T> {
     value: T,
 }
 
+/// A wrapper for little-endian types.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct BigEndian<T> {
     value: T,
 }
-
-pub trait AtomicPrimitive {
-    type Primitive;
-}
-
-pub type Primitive<T> = <T as AtomicPrimitive>::Primitive;
-
-#[cfg(has_atomics)]
-macro_rules! impl_atomic_primitive {
-    ($ty:ident, $prim:ident) => {
-        impl AtomicPrimitive for $ty {
-            type Primitive = $prim;
-        }
-    };
-}
-
-#[cfg(has_atomics)]
-impl_atomic_primitive!(AtomicI16, i16);
-#[cfg(has_atomics)]
-impl_atomic_primitive!(AtomicI32, i32);
-#[cfg(has_atomics_64)]
-impl_atomic_primitive!(AtomicI64, i64);
-#[cfg(has_atomics)]
-impl_atomic_primitive!(AtomicU16, u16);
-#[cfg(has_atomics)]
-impl_atomic_primitive!(AtomicU32, u32);
-#[cfg(has_atomics_64)]
-impl_atomic_primitive!(AtomicU64, u64);
 
 macro_rules! swap_endian {
     (@NativeEndian $expr:expr) => {{
@@ -156,58 +143,188 @@ macro_rules! swap_bytes {
 }
 
 macro_rules! impl_endian {
-    (@$class:ident $ne:ty, $le:ident, $be:ident $(= $prim:ident)?) => {
-        impl_endian!(@$class NativeEndian<$ne> $(= $prim)?);
-        impl_endian!(@$class LittleEndian<$ne> as $le $(= $prim)?);
-        impl_endian!(@$class BigEndian<$ne> as $be $(= $prim)?);
+    (
+        @$class:ident $native:ty $(= $prim:ty)?,
+        $ne:ident = $ne_doc:literal,
+        $le:ident = $le_doc:literal,
+        $be:ident = $be_doc:literal
+    ) => {
+        impl_endian!(@$class $ne_doc NativeEndian<$native> as $ne $(= $prim)?);
+        impl_endian!(@$class $le_doc LittleEndian<$native> as $le $(= $prim)?);
+        impl_endian!(@$class $be_doc BigEndian<$native> as $be $(= $prim)?);
     };
-    (@$class:ident $endian:ident<$ne:ty> as $alias:ident $(= $prim:ident)?) => {
-        impl_endian!(@$class $endian<$ne> $(= $prim)?);
+    (@$class:ident $doc:literal $endian:ident<$ne:ty> as $alias:ident $(= $prim:ty)?) => {
+        impl_struct!(@$class $endian<$ne> $(= $prim)?);
+        #[cfg(feature = "validation")]
+        impl_validation!(@$class $endian<$ne> $(= $prim)?);
+        #[doc = "Alias for `"]
+        #[doc = $doc]
+        #[doc = "`"]
         #[allow(non_camel_case_types)]
         pub type $alias = $endian<$ne>;
     };
-    (@$class:ident $endian:ident<$ne:ty> $(= $prim:ident)?) => {
-        impl_struct!(@$class $endian<$ne>);
-        #[cfg(feature = "validation")]
-        impl_validation!(@$class $endian<$ne> $(= $prim)?);
-    };
 }
 
-impl_endian!(@signed_int i16, i16_le, i16_be);
-impl_endian!(@signed_int i32, i32_le, i32_be);
-impl_endian!(@signed_int i64, i64_le, i64_be);
-impl_endian!(@signed_int i128, i128_le, i128_be);
-impl_endian!(@unsigned_int u16, u16_le, u16_be);
-impl_endian!(@unsigned_int u32, u32_le, u32_be);
-impl_endian!(@unsigned_int u64, u64_le, u64_be);
-impl_endian!(@unsigned_int u128, u128_le, u128_be);
+impl_endian!(
+    @signed_int i16,
+    i16_ne = "`NativeEndian<i16>`",
+    i16_le = "`LittleEndian<i16>`",
+    i16_be = "`BigEndian<i16>`"
+);
+impl_endian!(
+    @signed_int i32,
+    i32_ne = "`NativeEndian<i32>`",
+    i32_le = "`LittleEndian<i32>`",
+    i32_be = "`BigEndian<i32>`"
+);
+impl_endian!(
+    @signed_int i64,
+    i64_ne = "`NativeEndian<i64>`",
+    i64_le = "`LittleEndian<i64>`",
+    i64_be = "`BigEndian<i64>`"
+);
+impl_endian!(
+    @signed_int i128,
+    i128_ne = "`NativeEndian<i128>`",
+    i128_le = "`LittleEndian<i128>`",
+    i128_be = "`BigEndian<i128>`"
+);
+impl_endian!(
+    @unsigned_int u16,
+    u16_ne = "`NativeEndian<u16>`",
+    u16_le = "`LittleEndian<u16>`",
+    u16_be = "`BigEndian<u16>`"
+);
+impl_endian!(
+    @unsigned_int u32,
+    u32_ne = "`NativeEndian<u32>`",
+    u32_le = "`LittleEndian<u32>`",
+    u32_be = "`BigEndian<u32>`"
+);
+impl_endian!(
+    @unsigned_int u64,
+    u64_ne = "`NativeEndian<u64>`",
+    u64_le = "`LittleEndian<u64>`",
+    u64_be = "`BigEndian<u64>`"
+);
+impl_endian!(
+    @unsigned_int u128,
+    u128_ne = "`NativeEndian<u128>`",
+    u128_le = "`LittleEndian<u128>`",
+    u128_be = "`BigEndian<u128>`"
+);
 
-impl_endian!(@float f32, f32_le, f32_be);
-impl_endian!(@float f64, f64_le, f64_be);
+impl_endian!(
+    @float f32,
+    f32_ne = "`NativeEndian<f32>`",
+    f32_le = "`LittleEndian<f32>`",
+    f32_be = "`BigEndian<f32>`"
+);
+impl_endian!(
+    @float f64,
+    f64_ne = "`NativeEndian<f64>`",
+    f64_le = "`LittleEndian<f64>`",
+    f64_be = "`BigEndian<f64>`"
+);
 
-impl_endian!(@char char, char_le, char_be);
+impl_endian!(
+    @char char,
+    char_ne = "`NativeEndian<char>`",
+    char_le = "`LittleEndian<char>`",
+    char_be = "`BigEndian<char>`"
+);
 
-impl_endian!(@nonzero NonZeroI16, NonZeroI16_le, NonZeroI16_be = i16);
-impl_endian!(@nonzero NonZeroI32, NonZeroI32_le, NonZeroI32_be = i32);
-impl_endian!(@nonzero NonZeroI64, NonZeroI64_le, NonZeroI64_be = i64);
-impl_endian!(@nonzero NonZeroI128, NonZeroI128_le, NonZeroI128_be = i128);
-impl_endian!(@nonzero NonZeroU16, NonZeroU16_le, NonZeroU16_be = u16);
-impl_endian!(@nonzero NonZeroU32, NonZeroU32_le, NonZeroU32_be = u32);
-impl_endian!(@nonzero NonZeroU64, NonZeroU64_le, NonZeroU64_be = u64);
-impl_endian!(@nonzero NonZeroU128, NonZeroU128_le, NonZeroU128_be = u128);
+impl_endian!(
+    @nonzero NonZeroI16 = i16,
+    NonZeroI16_ne = "`NativeEndian<NonZeroI16>`",
+    NonZeroI16_le = "`LittleEndian<NonZeroI16>`",
+    NonZeroI16_be = "`BigEndian<NonZeroI16>`"
+);
+impl_endian!(
+    @nonzero NonZeroI32 = i32,
+    NonZeroI32_ne = "`NativeEndian<NonZeroI32>`",
+    NonZeroI32_le = "`LittleEndian<NonZeroI32>`",
+    NonZeroI32_be = "`BigEndian<NonZeroI32>`"
+);
+impl_endian!(
+    @nonzero NonZeroI64 = i64,
+    NonZeroI64_ne = "`NativeEndian<NonZeroI64>`",
+    NonZeroI64_le = "`LittleEndian<NonZeroI64>`",
+    NonZeroI64_be = "`BigEndian<NonZeroI64>`"
+);
+impl_endian!(
+    @nonzero NonZeroI128 = i128,
+    NonZeroI128_ne = "`NativeEndian<NonZeroI128>`",
+    NonZeroI128_le = "`LittleEndian<NonZeroI128>`",
+    NonZeroI128_be = "`BigEndian<NonZeroI128>`"
+);
+impl_endian!(
+    @nonzero NonZeroU16 = u16,
+    NonZeroU16_ne = "`NativeEndian<NonZeroU16>`",
+    NonZeroU16_le = "`LittleEndian<NonZeroU16>`",
+    NonZeroU16_be = "`BigEndian<NonZeroU16>`"
+);
+impl_endian!(
+    @nonzero NonZeroU32 = u32,
+    NonZeroU32_ne = "`NativeEndian<NonZeroU32>`",
+    NonZeroU32_le = "`LittleEndian<NonZeroU32>`",
+    NonZeroU32_be = "`BigEndian<NonZeroU32>`"
+);
+impl_endian!(
+    @nonzero NonZeroU64 = u64,
+    NonZeroU64_ne = "`NativeEndian<NonZeroU64>`",
+    NonZeroU64_le = "`LittleEndian<NonZeroU64>`",
+    NonZeroU64_be = "`BigEndian<NonZeroU64>`"
+);
+impl_endian!(
+    @nonzero NonZeroU128 = u128,
+    NonZeroU128_ne = "`NativeEndian<NonZeroU128>`",
+    NonZeroU128_le = "`LittleEndian<NonZeroU128>`",
+    NonZeroU128_be = "`BigEndian<NonZeroU128>`"
+);
 
 #[cfg(has_atomics)]
-impl_endian!(@atomic AtomicI16, AtomicI16_le, AtomicI16_be);
+impl_endian!(
+    @atomic AtomicI16 = i16,
+    AtomicI16_ne = "`NativeEndian<AtomicI16>`",
+    AtomicI16_le = "`LittleEndian<AtomicI16>`",
+    AtomicI16_be = "`BigEndian<AtomicI16>`"
+);
 #[cfg(has_atomics)]
-impl_endian!(@atomic AtomicI32, AtomicI32_le, AtomicI32_be);
+impl_endian!(
+    @atomic AtomicI32 = i32,
+    AtomicI32_ne = "`NativeEndian<AtomicI32>`",
+    AtomicI32_le = "`LittleEndian<AtomicI32>`",
+    AtomicI32_be = "`BigEndian<AtomicI32>`"
+);
 #[cfg(has_atomics_64)]
-impl_endian!(@atomic AtomicI64, AtomicI64_le, AtomicI64_be);
+impl_endian!(
+    @atomic AtomicI64 = i64,
+    AtomicI64_ne = "`NativeEndian<AtomicI64>`",
+    AtomicI64_le = "`LittleEndian<AtomicI64>`",
+    AtomicI64_be = "`BigEndian<AtomicI64>`"
+);
 #[cfg(has_atomics)]
-impl_endian!(@atomic AtomicU16, AtomicU16_le, AtomicU16_be);
+impl_endian!(
+    @atomic AtomicU16 = u16,
+    AtomicU16_ne = "`NativeEndian<AtomicU16>`",
+    AtomicU16_le = "`LittleEndian<AtomicU16>`",
+    AtomicU16_be = "`BigEndian<AtomicU16>`"
+);
 #[cfg(has_atomics)]
-impl_endian!(@atomic AtomicU32, AtomicU32_le, AtomicU32_be);
+impl_endian!(
+    @atomic AtomicU32 = u32,
+    AtomicU32_ne = "`NativeEndian<AtomicU32>`",
+    AtomicU32_le = "`LittleEndian<AtomicU32>`",
+    AtomicU32_be = "`BigEndian<AtomicU32>`"
+);
 #[cfg(has_atomics_64)]
-impl_endian!(@atomic AtomicU64, AtomicU64_le, AtomicU64_be);
+impl_endian!(
+    @atomic AtomicU64 = u64,
+    AtomicU64_ne = "`NativeEndian<AtomicU64>`",
+    AtomicU64_le = "`LittleEndian<AtomicU64>`",
+    AtomicU64_be = "`BigEndian<AtomicU64>`"
+);
 
 #[cfg(test)]
 mod tests {

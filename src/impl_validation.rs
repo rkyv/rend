@@ -54,7 +54,7 @@ macro_rules! impl_validation {
             }
         }
     };
-    (@atomic $endian:ident<$ne:ty>) => {
+    (@atomic $endian:ident<$ne:ty> = $prim:ty) => {
         impl_validation!(@always $endian<$ne>);
     };
 }

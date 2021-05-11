@@ -184,7 +184,7 @@ macro_rules! impl_struct {
             impl_partial_ord!();
         };
     };
-    (@nonzero $endian:ident<$ne:ty>) => {
+    (@nonzero $endian:ident<$ne:ty> = $prim:ty) => {
         impl_struct!(@nonzero $endian<$ne> (const));
 
         const _: () = {
@@ -207,18 +207,18 @@ macro_rules! impl_struct {
             impl_fmt!(UpperHex);
         };
     };
-    (@atomic $endian:ident<$ne:ty>) => {
+    (@atomic $endian:ident<$ne:ty> = $prim:ty) => {
         impl $endian<$ne> {
             /// Stores a value into the atomic integer if the current value is the same as the
             /// `current` value.
             #[inline]
             pub fn compare_exchange(
                 &self,
-                current: Primitive<$ne>,
-                new: Primitive<$ne>,
+                current: $prim,
+                new: $prim,
                 success: Ordering,
                 failure: Ordering,
-            ) -> Result<Primitive<$ne>, Primitive<$ne>> {
+            ) -> Result<$prim, $prim> {
                 match self.value.compare_exchange(
                     swap_bytes!(@atomic $endian<$ne> current),
                     swap_bytes!(@atomic $endian<$ne> new),
@@ -232,45 +232,51 @@ macro_rules! impl_struct {
 
             /// Adds to the current value, returning the previous value.
             #[inline]
-            pub fn fetch_add(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
+            pub fn fetch_add(&self, val: $prim, order: Ordering) -> $prim {
                 self.fetch_update(order, order, |x| Some(x + val)).unwrap()
             }
 
             /// Bitwise "and" with the current value.
             #[inline]
-            pub fn fetch_and(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
-                swap_bytes!(@atomic $endian<$ne> self.value.fetch_and(swap_bytes!(@atomic $endian<$ne> val), order))
+            pub fn fetch_and(&self, val: $prim, order: Ordering) -> $prim {
+                swap_bytes!(@atomic $endian<$ne>
+                    self.value.fetch_and(swap_bytes!(@atomic $endian<$ne> val), order)
+                )
             }
 
             /// Maximum with the current value.
             #[inline]
-            pub fn fetch_max(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
-                self.fetch_update(order, order, |x| Some(<Primitive<$ne>>::max(x, val)))
+            pub fn fetch_max(&self, val: $prim, order: Ordering) -> $prim {
+                self.fetch_update(order, order, |x| Some(<$prim>::max(x, val)))
                     .unwrap()
             }
 
             /// Minimum with the current value.
             #[inline]
-            pub fn fetch_min(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
-                self.fetch_update(order, order, |x| Some(<Primitive<$ne>>::min(x, val)))
+            pub fn fetch_min(&self, val: $prim, order: Ordering) -> $prim {
+                self.fetch_update(order, order, |x| Some(<$prim>::min(x, val)))
                     .unwrap()
             }
 
             /// Bitwise "nand" with the current value.
             #[inline]
-            pub fn fetch_nand(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
-                swap_bytes!(@atomic $endian<$ne> self.value.fetch_nand(swap_bytes!(@atomic $endian<$ne> val), order))
+            pub fn fetch_nand(&self, val: $prim, order: Ordering) -> $prim {
+                swap_bytes!(@atomic $endian<$ne>
+                    self.value.fetch_nand(swap_bytes!(@atomic $endian<$ne> val), order)
+                )
             }
 
             /// Bitwise "or" with the current value.
             #[inline]
-            pub fn fetch_or(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
-                swap_bytes!(@atomic $endian<$ne> self.value.fetch_or(swap_bytes!(@atomic $endian<$ne> val), order))
+            pub fn fetch_or(&self, val: $prim, order: Ordering) -> $prim {
+                swap_bytes!(@atomic $endian<$ne>
+                    self.value.fetch_or(swap_bytes!(@atomic $endian<$ne> val), order)
+                )
             }
 
             /// Subtracts from the current value, returning the previous value.
             #[inline]
-            pub fn fetch_sub(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
+            pub fn fetch_sub(&self, val: $prim, order: Ordering) -> $prim {
                 self.fetch_update(order, order, |x| Some(x - val)).unwrap()
             }
 
@@ -278,38 +284,41 @@ macro_rules! impl_struct {
             /// Returns a `Result` of `Ok(previous_value)` if the function returned `Some(_)`, else
             /// `Err(previous_value)`.
             #[inline]
-            pub fn fetch_update<F: FnMut(Primitive<$ne>) -> Option<Primitive<$ne>>>(
+            pub fn fetch_update<F: FnMut($prim) -> Option<$prim>>(
                 &self,
                 set_order: Ordering,
                 fetch_order: Ordering,
                 mut f: F,
-            ) -> Result<Primitive<$ne>, Primitive<$ne>> {
+            ) -> Result<$prim, $prim> {
                 self.value.fetch_update(set_order, fetch_order, |x| {
-                    f(swap_bytes!(@atomic $endian<$ne> x)).map(|x| swap_bytes!(@atomic $endian<$ne> x))
+                    f(swap_bytes!(@atomic $endian<$ne> x))
+                        .map(|x| swap_bytes!(@atomic $endian<$ne> x))
                 })
             }
 
             /// Bitwise "xor" with the current value.
             #[inline]
-            pub fn fetch_xor(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
-                swap_bytes!(@atomic $endian<$ne> self.value.fetch_xor(swap_bytes!(@atomic $endian<$ne> val), order))
+            pub fn fetch_xor(&self, val: $prim, order: Ordering) -> $prim {
+                swap_bytes!(@atomic $endian<$ne>
+                    self.value.fetch_xor(swap_bytes!(@atomic $endian<$ne> val), order)
+                )
             }
 
             /// Consumes the atomic and returns the contained value.
             #[inline]
-            pub fn into_inner(self) -> Primitive<$ne> {
+            pub fn into_inner(self) -> $prim {
                 swap_bytes!(@atomic $endian<$ne> self.value.into_inner())
             }
 
             /// Loads a value from the atomic integer.
             #[inline]
-            pub fn load(&self, order: Ordering) -> Primitive<$ne> {
+            pub fn load(&self, order: Ordering) -> $prim {
                 swap_bytes!(@atomic $endian<$ne> self.value.load(order))
             }
 
             /// Creates a new atomic integer
             #[inline]
-            pub const fn new(value: Primitive<$ne>) -> Self {
+            pub const fn new(value: $prim) -> Self {
                 Self {
                     value: <$ne>::new(swap_bytes!(@atomic $endian<$ne> value)),
                 }
@@ -317,14 +326,16 @@ macro_rules! impl_struct {
 
             /// Stores a value into the atomic integer.
             #[inline]
-            pub fn store(&self, val: Primitive<$ne>, order: Ordering) {
+            pub fn store(&self, val: $prim, order: Ordering) {
                 self.value.store(swap_bytes!(@atomic $endian<$ne> val), order);
             }
 
             /// Stores a value into the atomic integer, returning the previous value.
             #[inline]
-            pub fn swap(&self, val: Primitive<$ne>, order: Ordering) -> Primitive<$ne> {
-                swap_bytes!(@atomic $endian<$ne> self.value.swap(swap_bytes!(@atomic $endian<$ne> val), order))
+            pub fn swap(&self, val: $prim, order: Ordering) -> $prim {
+                swap_bytes!(@atomic $endian<$ne>
+                    self.value.swap(swap_bytes!(@atomic $endian<$ne> val), order)
+                )
             }
         }
 
@@ -338,13 +349,13 @@ macro_rules! impl_struct {
         impl Default for $endian<$ne> {
             #[inline]
             fn default() -> Self {
-                Self::new(Primitive::<$ne>::default())
+                Self::new(<$prim>::default())
             }
         }
 
-        impl From<Primitive<$ne>> for $endian<$ne> {
+        impl From<$prim> for $endian<$ne> {
             #[inline]
-            fn from(value: Primitive<$ne>) -> Self {
+            fn from(value: $prim) -> Self {
                 Self::new(value)
             }
         }
