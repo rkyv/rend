@@ -14,6 +14,11 @@
 //! rend is intended to be used to build portable types that can be shared between different
 //! architectures, especially with zero-copy deserialization.
 //!
+//! ## Features
+//!
+//! - `std`: Enables standard library support (enabled by default)
+//! - `validation`: Enables validation support through `bytecheck`
+//!
 //! ## Example:
 //! ```
 //! use rend::*;
