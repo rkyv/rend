@@ -157,6 +157,24 @@ macro_rules! impl_from {
                 Self::new(value)
             }
         }
+
+        impl<'a> From<&'a Native> for Endian {
+            fn from(value: &'a Native) -> Self {
+                Self::new(*value)
+            }
+        }
+
+        impl From<Endian> for Native {
+            fn from(value: Endian) -> Self {
+                value.value()
+            }
+        }
+
+        impl<'a> From<&'a Endian> for Native {
+            fn from(value: &'a Endian) -> Self {
+                value.value()
+            }
+        }
     };
 }
 
