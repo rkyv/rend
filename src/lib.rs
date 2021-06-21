@@ -63,7 +63,7 @@ mod impl_traits;
 mod impl_validation;
 
 #[cfg(feature = "validation")]
-use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError, Unreachable};
+use core::convert::Infallible;
 #[cfg(has_atomics)]
 use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU16, AtomicU32, Ordering};
 #[cfg(has_atomics_64)]
@@ -75,6 +75,8 @@ use core::{
         NonZeroU64,
     },
 };
+#[cfg(feature = "validation")]
+use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError};
 
 /// A wrapper for native-endian types.
 ///

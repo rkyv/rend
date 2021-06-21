@@ -1,7 +1,7 @@
 macro_rules! impl_validation {
     (@always $endian:ident<$ne:ty>) => {
         impl<C: ?Sized> CheckBytes<C> for $endian<$ne> {
-            type Error = Unreachable;
+            type Error = Infallible;
 
             #[inline]
             unsafe fn check_bytes<'a>(
