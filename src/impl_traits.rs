@@ -214,6 +214,13 @@ macro_rules! impl_partial_eq {
                 self.value().eq(other)
             }
         }
+
+        impl PartialEq<Endian> for Native {
+            #[inline]
+            fn eq(&self, other: &Endian) -> bool {
+                self.eq(&other.value())
+            }
+        }
     };
 }
 
