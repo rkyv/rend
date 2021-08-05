@@ -53,6 +53,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
 #![deny(missing_crate_level_docs)]
+#![deny(
+    rust_2018_compatibility,
+    rust_2018_idioms,
+    future_incompatible,
+    nonstandard_style,
+    unused,
+    clippy::all
+)]
+#![allow(clippy::excessive_precision)]
 
 #[macro_use]
 mod impl_struct;
@@ -62,6 +71,8 @@ mod impl_traits;
 #[macro_use]
 mod impl_validation;
 
+#[cfg(feature = "validation")]
+use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError};
 #[cfg(feature = "validation")]
 use core::convert::Infallible;
 #[cfg(has_atomics)]
@@ -75,8 +86,6 @@ use core::{
         NonZeroU64,
     },
 };
-#[cfg(feature = "validation")]
-use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError};
 
 /// A wrapper for native-endian types.
 ///
