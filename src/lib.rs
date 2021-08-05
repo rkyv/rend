@@ -51,17 +51,16 @@
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(missing_docs)]
-#![deny(missing_crate_level_docs)]
 #![deny(
+    missing_docs,
+    missing_crate_level_docs,
     rust_2018_compatibility,
     rust_2018_idioms,
     future_incompatible,
     nonstandard_style,
     unused,
-    clippy::all
+    clippy::all,
 )]
-#![allow(clippy::excessive_precision)]
 
 #[macro_use]
 mod impl_struct;
@@ -445,22 +444,22 @@ mod tests {
 
             // f32
             assert_eq!(
-                [0x40, 0x49, 0x0f, 0xd0],
-                mem::transmute::<_, [u8; 4]>(f32_be::new(3.141590118408203125f32))
+                [0x40, 0x49, 0x0f, 0xdb],
+                mem::transmute::<_, [u8; 4]>(f32_be::new(core::f32::consts::PI))
             );
             assert_eq!(
-                [0xd0, 0x0f, 0x49, 0x40],
-                mem::transmute::<_, [u8; 4]>(f32_le::new(3.141590118408203125f32))
+                [0xdb, 0x0f, 0x49, 0x40],
+                mem::transmute::<_, [u8; 4]>(f32_le::new(core::f32::consts::PI))
             );
 
             // f64
             assert_eq!(
-                [0x40, 0x09, 0x21, 0xfb, 0x4d, 0x12, 0xd8, 0x4a],
-                mem::transmute::<_, [u8; 8]>(f64_be::new(3.1415926000000000684053702571f64))
+                [0x40, 0x09, 0x21, 0xfb, 0x54, 0x44, 0x2d, 0x18],
+                mem::transmute::<_, [u8; 8]>(f64_be::new(core::f64::consts::PI))
             );
             assert_eq!(
-                [0x4a, 0xd8, 0x12, 0x4d, 0xfb, 0x21, 0x09, 0x40],
-                mem::transmute::<_, [u8; 8]>(f64_le::new(3.1415926000000000684053702571f64))
+                [0x18, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40],
+                mem::transmute::<_, [u8; 8]>(f64_le::new(core::f64::consts::PI))
             );
 
             // char
@@ -474,30 +473,36 @@ mod tests {
             );
 
             // AtomicU16
+            #[cfg(has_atomics)]
             assert_eq!(
                 [0x01, 0x02],
                 mem::transmute::<_, [u8; 2]>(AtomicU16_be::new(0x0102))
             );
+            #[cfg(has_atomics)]
             assert_eq!(
                 [0x02, 0x01],
                 mem::transmute::<_, [u8; 2]>(AtomicU16_le::new(0x0102))
             );
 
             // AtomicU32
+            #[cfg(has_atomics)]
             assert_eq!(
                 [0x01, 0x02, 0x03, 0x04],
                 mem::transmute::<_, [u8; 4]>(AtomicU32_be::new(0x01020304))
             );
+            #[cfg(has_atomics)]
             assert_eq!(
                 [0x04, 0x03, 0x02, 0x01],
                 mem::transmute::<_, [u8; 4]>(AtomicU32_le::new(0x01020304))
             );
 
             // AtomicU64
+            #[cfg(has_atomics_64)]
             assert_eq!(
                 [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
                 mem::transmute::<_, [u8; 8]>(AtomicU64_be::new(0x0102030405060708))
             );
+            #[cfg(has_atomics_64)]
             assert_eq!(
                 [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
                 mem::transmute::<_, [u8; 8]>(AtomicU64_le::new(0x0102030405060708))
