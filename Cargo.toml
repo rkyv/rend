@@ -1,6 +1,6 @@
 [package]
 name = "rend"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["David Koloski <djkoloski@gmail.com>"]
 edition = "2018"
 description = "Endian-aware primitives for Rust"
