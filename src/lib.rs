@@ -53,7 +53,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(
     missing_docs,
-    missing_crate_level_docs,
+    rustdoc::missing_crate_level_docs,
     rust_2018_compatibility,
     rust_2018_idioms,
     future_incompatible,
