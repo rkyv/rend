@@ -59,7 +59,7 @@
     future_incompatible,
     nonstandard_style,
     unused,
-    clippy::all,
+    clippy::all
 )]
 
 #[macro_use]

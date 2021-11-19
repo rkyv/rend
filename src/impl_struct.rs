@@ -1,3 +1,18 @@
+use ::core::sync::atomic::Ordering;
+
+#[cfg(has_atomics)]
+#[inline]
+pub(crate) fn failure_ordering_for(order: Ordering) -> Ordering {
+    match order {
+        Ordering::Relaxed => Ordering::Relaxed,
+        Ordering::Release => Ordering::Relaxed,
+        Ordering::Acquire => Ordering::Acquire,
+        Ordering::AcqRel => Ordering::Acquire,
+        Ordering::SeqCst => Ordering::SeqCst,
+        order => order,
+    }
+}
+
 macro_rules! impl_struct {
     (@$class:ident $endian:ident<$ne:ty> ($($const:ident)?)) => {
         impl $endian<$ne> {
@@ -233,7 +248,11 @@ macro_rules! impl_struct {
             /// Adds to the current value, returning the previous value.
             #[inline]
             pub fn fetch_add(&self, val: $prim, order: Ordering) -> $prim {
-                self.fetch_update(order, order, |x| Some(x + val)).unwrap()
+                self.fetch_update(
+                    order,
+                    $crate::impl_struct::failure_ordering_for(order),
+                    |x| Some(x + val),
+                ).unwrap()
             }
 
             /// Bitwise "and" with the current value.
@@ -247,15 +266,21 @@ macro_rules! impl_struct {
             /// Maximum with the current value.
             #[inline]
             pub fn fetch_max(&self, val: $prim, order: Ordering) -> $prim {
-                self.fetch_update(order, order, |x| Some(<$prim>::max(x, val)))
-                    .unwrap()
+                self.fetch_update(
+                    order,
+                    $crate::impl_struct::failure_ordering_for(order),
+                    |x| Some(<$prim>::max(x, val)),
+                ).unwrap()
             }
 
             /// Minimum with the current value.
             #[inline]
             pub fn fetch_min(&self, val: $prim, order: Ordering) -> $prim {
-                self.fetch_update(order, order, |x| Some(<$prim>::min(x, val)))
-                    .unwrap()
+                self.fetch_update(
+                    order,
+                    $crate::impl_struct::failure_ordering_for(order),
+                    |x| Some(<$prim>::min(x, val)),
+                ).unwrap()
             }
 
             /// Bitwise "nand" with the current value.
@@ -277,7 +302,11 @@ macro_rules! impl_struct {
             /// Subtracts from the current value, returning the previous value.
             #[inline]
             pub fn fetch_sub(&self, val: $prim, order: Ordering) -> $prim {
-                self.fetch_update(order, order, |x| Some(x - val)).unwrap()
+                self.fetch_update(
+                    order,
+                    $crate::impl_struct::failure_ordering_for(order),
+                    |x| Some(x - val),
+                ).unwrap()
             }
 
             /// Fetches the value, and applies a function to it that returns an optional new value.
