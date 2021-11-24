@@ -1,3 +1,4 @@
+#[cfg(has_atomics)]
 use ::core::sync::atomic::Ordering;
 
 #[cfg(has_atomics)]
