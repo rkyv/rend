@@ -389,10 +389,5 @@ macro_rules! impl_struct {
                 Self::new(value)
             }
         }
-
-        #[cfg(feature = "std")]
-        impl ::std::panic::RefUnwindSafe for $endian<$ne> {}
-
-        unsafe impl Sync for $endian<$ne> {}
     };
 }
