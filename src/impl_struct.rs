@@ -20,6 +20,7 @@ macro_rules! impl_struct {
             /// Creates a new value from a native-endian value
             #[inline]
             pub $($const)? fn new(value: $ne) -> Self {
+                let value = from_native!(@$class $endian<$ne> value);
                 Self {
                     value: swap_bytes!(@$class $endian<$ne> value)
                 }
@@ -28,7 +29,8 @@ macro_rules! impl_struct {
             /// Converts the value to a native-endian value
             #[inline]
             pub $($const)? fn value(self) -> $ne {
-                swap_bytes!(@$class $endian<$ne> self.value)
+                let value = swap_bytes!(@$class $endian<$ne> self.value);
+                to_native!(@$class $endian<$ne> value)
             }
 
             /// Creates a `NativeEndian` from this value

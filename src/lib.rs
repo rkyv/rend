@@ -86,6 +86,13 @@ use core::{
     },
 };
 
+/// A type that has an associated cross-endian storage type.
+pub unsafe trait Primitive {
+    /// An endian-agnostic type that can represent the primitve in both little- and big-endian
+    /// forms.
+    type Storage;
+}
+
 /// A wrapper for native-endian types.
 ///
 /// This is mostly useful for `const` conversions to big- and little-endian types in contexts where
@@ -100,15 +107,15 @@ pub struct NativeEndian<T> {
 /// A wrapper for big-endian types.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct LittleEndian<T> {
-    value: T,
+pub struct LittleEndian<T: Primitive> {
+    value: T::Storage,
 }
 
 /// A wrapper for little-endian types.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct BigEndian<T> {
-    value: T,
+pub struct BigEndian<T: Primitive> {
+    value: T::Storage,
 }
 
 macro_rules! swap_endian {
@@ -148,7 +155,7 @@ macro_rules! swap_bytes {
         <$ne>::from_bits(swap_endian!(@$endian $value.to_bits()))
     };
     (@char $endian:ident<$ne:ty> $value:expr) => {
-        unsafe { ::core::char::from_u32_unchecked(swap_endian!(@$endian $value as u32)) }
+        swap_endian!(@$endian $value)
     };
     (@nonzero $endian:ident<$ne:ty> $value:expr) => {
         unsafe { <$ne>::new_unchecked(swap_endian!(@$endian $value.get())) }
@@ -156,6 +163,18 @@ macro_rules! swap_bytes {
     (@atomic $endian:ident<$ne:ty> $value:expr) => {
         swap_endian!(@$endian $value)
     };
+}
+
+macro_rules! from_native {
+    (@char NativeEndian<$ne:ty> $value:expr) => { $value };
+    (@char $endian:ident<$ne:ty> $value:expr) => { $value as u32 };
+    (@$class:ident $endian:ident<$ne:ty> $value:expr) => { $value };
+}
+
+macro_rules! to_native {
+    (@char NativeEndian<$ne:ty> $value:expr) => { $value };
+    (@char $endian:ident<$ne:ty> $value:expr) => { unsafe { char::from_u32_unchecked($value) } };
+    (@$class:ident $endian:ident<$ne:ty> $value:expr) => { $value };
 }
 
 macro_rules! impl_endian {
@@ -173,12 +192,40 @@ macro_rules! impl_endian {
         impl_struct!(@$class $endian<$ne> $(= $prim)?);
         #[cfg(feature = "validation")]
         impl_validation!(@$class $endian<$ne> $(= $prim)?);
-        #[doc = "Alias for `"]
+        #[doc = "Alias for "]
         #[doc = $doc]
-        #[doc = "`"]
+        #[doc = "."]
         #[allow(non_camel_case_types)]
         pub type $alias = $endian<$ne>;
     };
+}
+
+macro_rules! impl_primitive {
+    ($($ty:ty),+ $(,)?) => {
+        $(
+            unsafe impl Primitive for $ty {
+                type Storage = $ty;
+            }
+        )+
+    };
+}
+
+impl_primitive!(
+    i16, i32, i64, i128,
+    u16, u32, u64, u128,
+    f32, f64,
+    NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128,
+    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128,
+);
+
+#[cfg(has_atomics)]
+impl_primitive!(AtomicI16, AtomicI32, AtomicU16, AtomicU32);
+
+#[cfg(has_atomics_64)]
+impl_primitive!(AtomicI64, AtomicU64);
+
+unsafe impl Primitive for char {
+    type Storage = u32;
 }
 
 impl_endian!(
