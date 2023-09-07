@@ -69,6 +69,8 @@ mod impl_traits;
 #[cfg(feature = "validation")]
 #[macro_use]
 mod impl_validation;
+#[cfg(feature = "bytemuck")]
+mod impl_bytemuck;
 
 #[cfg(feature = "validation")]
 use bytecheck::{CharCheckError, CheckBytes, NonZeroCheckError};
@@ -98,6 +100,7 @@ pub unsafe trait Primitive {
 /// This is mostly useful for `const` conversions to big- and little-endian types in contexts where
 /// type inference is required. Because it's native-endian, the inner value is publicly exposed.
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::Pod))]
 #[repr(transparent)]
 pub struct NativeEndian<T> {
     /// The value of the type
