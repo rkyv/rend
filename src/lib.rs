@@ -78,13 +78,10 @@ use core::{
 };
 
 macro_rules! match_endian {
-    (native $native:expr, $little:expr, $big:expr $(,)?) => {
-        $native
-    };
-    (little $native:expr, $little:expr, $big:expr $(,)?) => {
+    (little $little:expr, $big:expr $(,)?) => {
         $little
     };
-    (big $native:expr, $little:expr, $big:expr $(,)?) => {
+    (big $little:expr, $big:expr $(,)?) => {
         $big
     };
 }
@@ -93,7 +90,6 @@ macro_rules! if_native_endian {
     ($endian:ident $true:expr, $false:expr $(,)?) => {
         match_endian!(
             $endian
-            $true,
             {
                 #[cfg(target_endian = "little")]
                 {
@@ -124,21 +120,15 @@ macro_rules! swap_endian {
     }
 }
 
-macro_rules! if_explicit_endian {
-    ($endian:ident $true:expr, $false:expr $(,)?) => {
-        match_endian!($endian $false, $true, $true)
-    };
-}
-
 macro_rules! endian_name {
     ($endian:ident) => {
-        match_endian!($endian "native", "little", "big")
+        match_endian!($endian "little", "big")
     };
 }
 
 macro_rules! opposite_endian_name {
     ($endian:ident) => {
-        match_endian!($endian "non-native", "big", "little")
+        match_endian!($endian "big", "little")
     };
 }
 
@@ -238,11 +228,8 @@ macro_rules! define_signed_integer {
 }
 
 macro_rules! define_signed_integers {
-    ($(
-        $ne:ident $le:ident $be:ident: $size_align:literal $prim:ty
-    ),* $(,)?) => {
+    ($($le:ident $be:ident: $size_align:literal $prim:ty),* $(,)?) => {
         $(
-            define_signed_integer!($ne: native $size_align $prim);
             define_signed_integer!($le: little $size_align $prim);
             define_signed_integer!($be: big $size_align $prim);
         )*
@@ -250,10 +237,10 @@ macro_rules! define_signed_integers {
 }
 
 define_signed_integers! {
-    i16_ne i16_le i16_be: 2 i16,
-    i32_ne i32_le i32_be: 4 i32,
-    i64_ne i64_le i64_be: 8 i64,
-    i128_ne i128_le i128_be: 16 i128,
+    i16_le i16_be: 2 i16,
+    i32_le i32_be: 4 i32,
+    i64_le i64_be: 8 i64,
+    i128_le i128_be: 16 i128,
 }
 
 macro_rules! define_unsigned_integer {
@@ -305,11 +292,8 @@ macro_rules! define_unsigned_integer {
 }
 
 macro_rules! define_unsigned_integers {
-    ($(
-        $ne:ident $le:ident $be:ident: $size_align:literal $prim:ty
-    ),* $(,)?) => {
+    ($($le:ident $be:ident: $size_align:literal $prim:ty),* $(,)?) => {
         $(
-            define_unsigned_integer!($ne: native $size_align $prim);
             define_unsigned_integer!($le: little $size_align $prim);
             define_unsigned_integer!($be: big $size_align $prim);
         )*
@@ -317,10 +301,10 @@ macro_rules! define_unsigned_integers {
 }
 
 define_unsigned_integers! {
-    u16_ne u16_le u16_be: 2 u16,
-    u32_ne u32_le u32_be: 4 u32,
-    u64_ne u64_le u64_be: 8 u64,
-    u128_ne u128_le u128_be: 16 u128,
+    u16_le u16_be: 2 u16,
+    u32_le u32_be: 4 u32,
+    u64_le u64_be: 8 u64,
+    u128_le u128_be: 16 u128,
 }
 
 macro_rules! define_float {
@@ -402,11 +386,10 @@ macro_rules! define_float {
 
 macro_rules! define_floats {
     ($(
-        $ne:ident $le:ident $be:ident:
+        $le:ident $be:ident:
         $size_align:literal $prim:ty as $prim_int:ty
     ),* $(,)?) => {
         $(
-            define_float!($ne: native $size_align $prim, $prim_int);
             define_float!($le: little $size_align $prim, $prim_int);
             define_float!($be: big $size_align $prim, $prim_int);
         )*
@@ -414,8 +397,8 @@ macro_rules! define_floats {
 }
 
 define_floats! {
-    f32_ne f32_le f32_be: 4 f32 as u32,
-    f64_ne f64_le f64_be: 8 f64 as u64,
+    f32_le f32_be: 4 f32 as u32,
+    f64_le f64_be: 8 f64 as u64,
 }
 
 macro_rules! define_char {
@@ -487,7 +470,6 @@ macro_rules! define_char {
     };
 }
 
-define_char!(char_ne: native);
 define_char!(char_le: little);
 define_char!(char_be: big);
 
@@ -600,11 +582,10 @@ macro_rules! define_nonzero {
 
 macro_rules! define_nonzeros {
     ($(
-        $ne:ident $le:ident $be:ident:
+        $le:ident $be:ident:
         $size_align:literal $prim:ty as $prim_int:ty
     ),* $(,)?) => {
         $(
-            define_nonzero!($ne: native $size_align $prim as $prim_int);
             define_nonzero!($le: little $size_align $prim as $prim_int);
             define_nonzero!($be: big $size_align $prim as $prim_int);
         )*
@@ -612,14 +593,14 @@ macro_rules! define_nonzeros {
 }
 
 define_nonzeros! {
-    NonZeroI16_ne NonZeroI16_le NonZeroI16_be: 2 NonZeroI16 as i16,
-    NonZeroI32_ne NonZeroI32_le NonZeroI32_be: 4 NonZeroI32 as i32,
-    NonZeroI64_ne NonZeroI64_le NonZeroI64_be: 8 NonZeroI64 as i64,
-    NonZeroI128_ne NonZeroI128_le NonZeroI128_be: 16 NonZeroI128 as i128,
-    NonZeroU16_ne NonZeroU16_le NonZeroU16_be: 2 NonZeroU16 as u16,
-    NonZeroU32_ne NonZeroU32_le NonZeroU32_be: 4 NonZeroU32 as u32,
-    NonZeroU64_ne NonZeroU64_le NonZeroU64_be: 8 NonZeroU64 as u64,
-    NonZeroU128_ne NonZeroU128_le NonZeroU128_be: 16 NonZeroU128 as u128,
+    NonZeroI16_le NonZeroI16_be: 2 NonZeroI16 as i16,
+    NonZeroI32_le NonZeroI32_be: 4 NonZeroI32 as i32,
+    NonZeroI64_le NonZeroI64_be: 8 NonZeroI64 as i64,
+    NonZeroI128_le NonZeroI128_be: 16 NonZeroI128 as i128,
+    NonZeroU16_le NonZeroU16_be: 2 NonZeroU16 as u16,
+    NonZeroU32_le NonZeroU32_be: 4 NonZeroU32 as u32,
+    NonZeroU64_le NonZeroU64_be: 8 NonZeroU64 as u64,
+    NonZeroU128_le NonZeroU128_be: 16 NonZeroU128 as u128,
 }
 
 #[allow(dead_code)]
@@ -714,18 +695,14 @@ macro_rules! define_atomic {
 
             /// Adds to the current value, returning the previous value.
             ///
-            #[doc = if_explicit_endian!(
-                $endian
-                concat!(
-                    "Because addition is not an endian-agnostic operation, ",
-                    "`fetch_add` is implemented in terms of [`",
-                    stringify!($prim),
-                    "::compare_exchange_weak`] on ",
-                    opposite_endian_name!($endian),
-                    "-endian targets. This may result in worse performance on ",
-                    "those targets.",
-                ),
-                "",
+            #[doc = concat!(
+                "Because addition is not an endian-agnostic operation, ",
+                "`fetch_add` is implemented in terms of [`",
+                stringify!($prim),
+                "::compare_exchange_weak`] on ",
+                opposite_endian_name!($endian),
+                "-endian targets. This may result in worse performance on ",
+                "those targets.",
             )]
             ///
             #[doc = concat!(
@@ -769,18 +746,14 @@ macro_rules! define_atomic {
 
             /// Maximum with the current value.
             ///
-            #[doc = if_explicit_endian!(
-                $endian
-                concat!(
-                    "Because maximum is not an endian-agnostic operation, ",
-                    "`fetch_max` is implemented in terms of [`",
-                    stringify!($prim),
-                    "::compare_exchange_weak`] on ",
-                    opposite_endian_name!($endian),
-                    "-endian targets. This may result in worse performance on ",
-                    "those targets.",
-                ),
-                "",
+            #[doc = concat!(
+                "Because maximum is not an endian-agnostic operation, ",
+                "`fetch_max` is implemented in terms of [`",
+                stringify!($prim),
+                "::compare_exchange_weak`] on ",
+                opposite_endian_name!($endian),
+                "-endian targets. This may result in worse performance on ",
+                "those targets.",
             )]
             ///
             #[doc = concat!(
@@ -807,18 +780,14 @@ macro_rules! define_atomic {
 
             /// Minimum with the current value.
             ///
-            #[doc = if_explicit_endian!(
-                $endian
-                concat!(
-                    "Because minimum is not an endian-agnostic operation, ",
-                    "`fetch_min` is implemented in terms of [`",
-                    stringify!($prim),
-                    "::compare_exchange_weak`] on ",
-                    opposite_endian_name!($endian),
-                    "-endian targets. This may result in worse performance on ",
-                    "those targets.",
-                ),
-                "",
+            #[doc = concat!(
+                "Because minimum is not an endian-agnostic operation, ",
+                "`fetch_min` is implemented in terms of [`",
+                stringify!($prim),
+                "::compare_exchange_weak`] on ",
+                opposite_endian_name!($endian),
+                "-endian targets. This may result in worse performance on ",
+                "those targets.",
             )]
             ///
             #[doc = concat!(
@@ -879,18 +848,14 @@ macro_rules! define_atomic {
 
             /// Subtracts from the current value, returning the previous value.
             ///
-            #[doc = if_explicit_endian!(
-                $endian
-                concat!(
-                    "Because subtraction is not an endian-agnostic operation, ",
-                    "`fetch_sub` is implemented in terms of [`",
-                    stringify!($prim),
-                    "::compare_exchange_weak`] on ",
-                    opposite_endian_name!($endian),
-                    "-endian targets. This may result in worse performance on ",
-                    "those targets.",
-                ),
-                "",
+            #[doc = concat!(
+                "Because subtraction is not an endian-agnostic operation, ",
+                "`fetch_sub` is implemented in terms of [`",
+                stringify!($prim),
+                "::compare_exchange_weak`] on ",
+                opposite_endian_name!($endian),
+                "-endian targets. This may result in worse performance on ",
+                "those targets.",
             )]
             ///
             #[doc = concat!(
@@ -1057,11 +1022,10 @@ macro_rules! define_atomic {
 
 macro_rules! define_atomics {
     ($(
-        $ne:ident $le:ident $be:ident:
+        $le:ident $be:ident:
         $size_align:literal $prim:ty as $prim_int:ty
     ),* $(,)?) => {
         $(
-            define_atomic!($ne: native $size_align $prim as $prim_int);
             define_atomic!($le: little $size_align $prim as $prim_int);
             define_atomic!($be: big $size_align $prim as $prim_int);
         )*
@@ -1070,20 +1034,20 @@ macro_rules! define_atomics {
 
 #[cfg(target_has_atomic = "16")]
 define_atomics! {
-    AtomicI16_ne AtomicI16_le AtomicI16_be: 2 AtomicI16 as i16,
-    AtomicU16_ne AtomicU16_le AtomicU16_be: 2 AtomicU16 as u16,
+    AtomicI16_le AtomicI16_be: 2 AtomicI16 as i16,
+    AtomicU16_le AtomicU16_be: 2 AtomicU16 as u16,
 }
 
 #[cfg(target_has_atomic = "32")]
 define_atomics! {
-    AtomicI32_ne AtomicI32_le AtomicI32_be: 4 AtomicI32 as i32,
-    AtomicU32_ne AtomicU32_le AtomicU32_be: 4 AtomicU32 as u32,
+    AtomicI32_le AtomicI32_be: 4 AtomicI32 as i32,
+    AtomicU32_le AtomicU32_be: 4 AtomicU32 as u32,
 }
 
 #[cfg(target_has_atomic = "64")]
 define_atomics! {
-    AtomicI64_ne AtomicI64_le AtomicI64_be: 8 AtomicI64 as i64,
-    AtomicU64_ne AtomicU64_le AtomicU64_be: 8 AtomicU64 as u64,
+    AtomicI64_le AtomicI64_be: 8 AtomicI64 as i64,
+    AtomicU64_le AtomicU64_be: 8 AtomicU64 as u64,
 }
 
 #[cfg(test)]
@@ -1096,10 +1060,6 @@ mod tests {
         unsafe {
             // i16
             assert_eq!(
-                transmute::<_, [u8; 2]>(0x0102i16),
-                transmute::<_, [u8; 2]>(i16_ne::from_native(0x0102)),
-            );
-            assert_eq!(
                 [0x02, 0x01],
                 transmute::<_, [u8; 2]>(i16_le::from_native(0x0102)),
             );
@@ -1110,10 +1070,6 @@ mod tests {
 
             // i32
             assert_eq!(
-                transmute::<_, [u8; 4]>(0x01020304i32),
-                transmute::<_, [u8; 4]>(i32_ne::from_native(0x01020304)),
-            );
-            assert_eq!(
                 [0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 4]>(i32_le::from_native(0x01020304)),
             );
@@ -1123,12 +1079,6 @@ mod tests {
             );
 
             // i64
-            assert_eq!(
-                transmute::<_, [u8; 8]>(0x0102030405060708i64),
-                transmute::<_, [u8; 8]>(i64_ne::from_native(
-                    0x0102030405060708
-                )),
-            );
             assert_eq!(
                 [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 8]>(i64_le::from_native(
@@ -1143,14 +1093,6 @@ mod tests {
             );
 
             // i128
-            assert_eq!(
-                transmute::<_, [u8; 16]>(
-                    0x0102030405060708090a0b0c0d0e0f10i128
-                ),
-                transmute::<_, [u8; 16]>(i128_ne::from_native(
-                    0x0102030405060708090a0b0c0d0e0f10
-                )),
-            );
             assert_eq!(
                 [
                     0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07,
@@ -1172,10 +1114,6 @@ mod tests {
 
             // u16
             assert_eq!(
-                transmute::<_, [u8; 2]>(0x0102u16),
-                transmute::<_, [u8; 2]>(u16_ne::from_native(0x0102)),
-            );
-            assert_eq!(
                 [0x02, 0x01],
                 transmute::<_, [u8; 2]>(u16_le::from_native(0x0102)),
             );
@@ -1186,10 +1124,6 @@ mod tests {
 
             // u32
             assert_eq!(
-                transmute::<_, [u8; 4]>(0x01020304u32),
-                transmute::<_, [u8; 4]>(u32_ne::from_native(0x01020304)),
-            );
-            assert_eq!(
                 [0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 4]>(u32_le::from_native(0x01020304)),
             );
@@ -1199,12 +1133,6 @@ mod tests {
             );
 
             // u64
-            assert_eq!(
-                transmute::<_, [u8; 8]>(0x0102030405060708u64),
-                transmute::<_, [u8; 8]>(u64_ne::from_native(
-                    0x0102030405060708
-                )),
-            );
             assert_eq!(
                 [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 8]>(u64_le::from_native(
@@ -1219,14 +1147,6 @@ mod tests {
             );
 
             // u128
-            assert_eq!(
-                transmute::<_, [u8; 16]>(
-                    0x0102030405060708090a0b0c0d0e0f10u128
-                ),
-                transmute::<_, [u8; 16]>(u128_ne::from_native(
-                    0x0102030405060708090a0b0c0d0e0f10
-                )),
-            );
             assert_eq!(
                 [
                     0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07,
@@ -1248,12 +1168,6 @@ mod tests {
 
             // f32
             assert_eq!(
-                transmute::<_, [u8; 4]>(core::f32::consts::PI),
-                transmute::<_, [u8; 4]>(f32_ne::from_native(
-                    core::f32::consts::PI
-                )),
-            );
-            assert_eq!(
                 [0xdb, 0x0f, 0x49, 0x40],
                 transmute::<_, [u8; 4]>(f32_le::from_native(
                     core::f32::consts::PI
@@ -1268,12 +1182,6 @@ mod tests {
 
             // f64
             assert_eq!(
-                transmute::<_, [u8; 8]>(core::f64::consts::PI),
-                transmute::<_, [u8; 8]>(f64_ne::from_native(
-                    core::f64::consts::PI
-                )),
-            );
-            assert_eq!(
                 [0x18, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x09, 0x40],
                 transmute::<_, [u8; 8]>(f64_le::from_native(
                     core::f64::consts::PI
@@ -1287,10 +1195,6 @@ mod tests {
             );
 
             // char
-            assert_eq!(
-                transmute::<_, [u8; 4]>('🎉'),
-                transmute::<_, [u8; 4]>(char_ne::from_native('🎉')),
-            );
             assert_eq!(
                 [0x89, 0xf3, 0x01, 0x00],
                 transmute::<_, [u8; 4]>(char_le::from_native('🎉')),
@@ -1307,10 +1211,6 @@ mod tests {
         unsafe {
             // NonZeroI16
             assert_eq!(
-                transmute::<_, [u8; 2]>(NonZeroI16::new_unchecked(0x0102)),
-                transmute::<_, [u8; 2]>(NonZeroI16_ne::new_unchecked(0x0102)),
-            );
-            assert_eq!(
                 [0x02, 0x01],
                 transmute::<_, [u8; 2]>(NonZeroI16_le::new_unchecked(0x0102)),
             );
@@ -1320,12 +1220,6 @@ mod tests {
             );
 
             // NonZeroI32
-            assert_eq!(
-                transmute::<_, [u8; 4]>(NonZeroI32::new_unchecked(0x01020304)),
-                transmute::<_, [u8; 4]>(NonZeroI32_ne::new_unchecked(
-                    0x01020304
-                )),
-            );
             assert_eq!(
                 [0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 4]>(NonZeroI32_le::new_unchecked(
@@ -1341,14 +1235,6 @@ mod tests {
 
             // NonZeroI64
             assert_eq!(
-                transmute::<_, [u8; 8]>(NonZeroI64::new_unchecked(
-                    0x0102030405060708
-                )),
-                transmute::<_, [u8; 8]>(NonZeroI64_ne::new_unchecked(
-                    0x0102030405060708
-                )),
-            );
-            assert_eq!(
                 [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 8]>(NonZeroI64_le::new_unchecked(
                     0x0102030405060708
@@ -1362,14 +1248,6 @@ mod tests {
             );
 
             // NonZeroI128
-            assert_eq!(
-                transmute::<_, [u8; 16]>(NonZeroI128::new_unchecked(
-                    0x0102030405060708090a0b0c0d0e0f10
-                )),
-                transmute::<_, [u8; 16]>(NonZeroI128_ne::new_unchecked(
-                    0x0102030405060708090a0b0c0d0e0f10
-                )),
-            );
             assert_eq!(
                 [
                     0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07,
@@ -1391,10 +1269,6 @@ mod tests {
 
             // NonZeroU16
             assert_eq!(
-                transmute::<_, [u8; 2]>(NonZeroU16::new_unchecked(0x0102)),
-                transmute::<_, [u8; 2]>(NonZeroU16_ne::new_unchecked(0x0102)),
-            );
-            assert_eq!(
                 [0x02, 0x01],
                 transmute::<_, [u8; 2]>(NonZeroU16_le::new_unchecked(0x0102)),
             );
@@ -1404,12 +1278,6 @@ mod tests {
             );
 
             // NonZeroU32
-            assert_eq!(
-                transmute::<_, [u8; 4]>(NonZeroU32::new_unchecked(0x01020304)),
-                transmute::<_, [u8; 4]>(NonZeroU32_ne::new_unchecked(
-                    0x01020304
-                )),
-            );
             assert_eq!(
                 [0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 4]>(NonZeroU32_le::new_unchecked(
@@ -1425,14 +1293,6 @@ mod tests {
 
             // NonZeroU64
             assert_eq!(
-                transmute::<_, [u8; 8]>(NonZeroU64::new_unchecked(
-                    0x0102030405060708
-                )),
-                transmute::<_, [u8; 8]>(NonZeroU64_ne::new_unchecked(
-                    0x0102030405060708
-                )),
-            );
-            assert_eq!(
                 [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 8]>(NonZeroU64_le::new_unchecked(
                     0x0102030405060708
@@ -1446,14 +1306,6 @@ mod tests {
             );
 
             // NonZeroU128
-            assert_eq!(
-                transmute::<_, [u8; 16]>(NonZeroU128::new_unchecked(
-                    0x0102030405060708090a0b0c0d0e0f10
-                )),
-                transmute::<_, [u8; 16]>(NonZeroU128_ne::new_unchecked(
-                    0x0102030405060708090a0b0c0d0e0f10
-                )),
-            );
             assert_eq!(
                 [
                     0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07,
@@ -1481,10 +1333,6 @@ mod tests {
         unsafe {
             // AtomicI16
             assert_eq!(
-                transmute::<_, [u8; 2]>(AtomicI16::new(0x0102)),
-                transmute::<_, [u8; 2]>(AtomicI16_ne::new(0x0102)),
-            );
-            assert_eq!(
                 [0x02, 0x01],
                 transmute::<_, [u8; 2]>(AtomicI16_le::new(0x0102)),
             );
@@ -1494,10 +1342,6 @@ mod tests {
             );
 
             // AtomicU16
-            assert_eq!(
-                transmute::<_, [u8; 2]>(AtomicU16::new(0x0102)),
-                transmute::<_, [u8; 2]>(AtomicU16_ne::new(0x0102)),
-            );
             assert_eq!(
                 [0x02, 0x01],
                 transmute::<_, [u8; 2]>(AtomicU16_le::new(0x0102)),
@@ -1515,10 +1359,6 @@ mod tests {
         unsafe {
             // AtomicI32
             assert_eq!(
-                transmute::<_, [u8; 4]>(AtomicI32::new(0x01020304)),
-                transmute::<_, [u8; 4]>(AtomicI32_ne::new(0x01020304)),
-            );
-            assert_eq!(
                 [0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 4]>(AtomicI32_le::new(0x01020304)),
             );
@@ -1528,10 +1368,6 @@ mod tests {
             );
 
             // AtomicU32
-            assert_eq!(
-                transmute::<_, [u8; 4]>(AtomicU32::new(0x01020304)),
-                transmute::<_, [u8; 4]>(AtomicU32_ne::new(0x01020304)),
-            );
             assert_eq!(
                 [0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 4]>(AtomicU32_le::new(0x01020304)),
@@ -1549,10 +1385,6 @@ mod tests {
         unsafe {
             // AtomicI64
             assert_eq!(
-                transmute::<_, [u8; 8]>(AtomicI64::new(0x0102030405060708)),
-                transmute::<_, [u8; 8]>(AtomicI64_ne::new(0x0102030405060708)),
-            );
-            assert_eq!(
                 [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 8]>(AtomicI64_le::new(0x0102030405060708)),
             );
@@ -1562,10 +1394,6 @@ mod tests {
             );
 
             // AtomicU64
-            assert_eq!(
-                transmute::<_, [u8; 8]>(AtomicU64::new(0x0102030405060708)),
-                transmute::<_, [u8; 8]>(AtomicU64_ne::new(0x0102030405060708)),
-            );
             assert_eq!(
                 [0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01],
                 transmute::<_, [u8; 8]>(AtomicU64_le::new(0x0102030405060708)),
