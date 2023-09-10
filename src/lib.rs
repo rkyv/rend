@@ -63,16 +63,19 @@
 #[macro_use]
 mod traits;
 
-use core::num::{
-    NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128, NonZeroU16,
-    NonZeroU32, NonZeroU64,
-};
-#[cfg(has_atomics)]
-use core::sync::atomic::{
-    AtomicI16, AtomicI32, AtomicU16, AtomicU32, Ordering,
-};
-#[cfg(has_atomics_64)]
+#[cfg(target_has_atomic = "16")]
+use core::sync::atomic::{AtomicI16, AtomicU16};
+#[cfg(target_has_atomic = "32")]
+use core::sync::atomic::{AtomicI32, AtomicU32};
+#[cfg(target_has_atomic = "64")]
 use core::sync::atomic::{AtomicI64, AtomicU64};
+use core::{
+    num::{
+        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU128,
+        NonZeroU16, NonZeroU32, NonZeroU64,
+    },
+    sync::atomic::Ordering,
+};
 
 macro_rules! match_endian {
     (native $native:expr, $little:expr, $big:expr $(,)?) => {
@@ -619,6 +622,7 @@ define_nonzeros! {
     NonZeroU128_ne NonZeroU128_le NonZeroU128_be: 16 NonZeroU128 as u128,
 }
 
+#[allow(dead_code)]
 const fn fetch_ordering(order: Ordering) -> Ordering {
     match order {
         Ordering::Relaxed => Ordering::Relaxed,
@@ -1064,15 +1068,19 @@ macro_rules! define_atomics {
     }
 }
 
-#[cfg(has_atomics)]
+#[cfg(target_has_atomic = "16")]
 define_atomics! {
     AtomicI16_ne AtomicI16_le AtomicI16_be: 2 AtomicI16 as i16,
-    AtomicI32_ne AtomicI32_le AtomicI32_be: 4 AtomicI32 as i32,
     AtomicU16_ne AtomicU16_le AtomicU16_be: 2 AtomicU16 as u16,
+}
+
+#[cfg(target_has_atomic = "32")]
+define_atomics! {
+    AtomicI32_ne AtomicI32_le AtomicI32_be: 4 AtomicI32 as i32,
     AtomicU32_ne AtomicU32_le AtomicU32_be: 4 AtomicU32 as u32,
 }
 
-#[cfg(has_atomics_64)]
+#[cfg(target_has_atomic = "64")]
 define_atomics! {
     AtomicI64_ne AtomicI64_le AtomicI64_be: 8 AtomicI64 as i64,
     AtomicU64_ne AtomicU64_le AtomicU64_be: 8 AtomicU64 as u64,
@@ -1467,9 +1475,9 @@ mod tests {
         }
     }
 
-    #[cfg(has_atomics)]
+    #[cfg(target_has_atomic = "16")]
     #[test]
-    fn atomics() {
+    fn atomics_16() {
         unsafe {
             // AtomicI16
             assert_eq!(
@@ -1485,20 +1493,6 @@ mod tests {
                 transmute::<_, [u8; 2]>(AtomicI16_be::new(0x0102)),
             );
 
-            // AtomicI32
-            assert_eq!(
-                transmute::<_, [u8; 4]>(AtomicI32::new(0x01020304)),
-                transmute::<_, [u8; 4]>(AtomicI32_ne::new(0x01020304)),
-            );
-            assert_eq!(
-                [0x04, 0x03, 0x02, 0x01],
-                transmute::<_, [u8; 4]>(AtomicI32_le::new(0x01020304)),
-            );
-            assert_eq!(
-                [0x01, 0x02, 0x03, 0x04],
-                transmute::<_, [u8; 4]>(AtomicI32_be::new(0x01020304)),
-            );
-
             // AtomicU16
             assert_eq!(
                 transmute::<_, [u8; 2]>(AtomicU16::new(0x0102)),
@@ -1511,6 +1505,26 @@ mod tests {
             assert_eq!(
                 [0x01, 0x02],
                 transmute::<_, [u8; 2]>(AtomicU16_be::new(0x0102)),
+            );
+        }
+    }
+
+    #[cfg(target_has_atomic = "32")]
+    #[test]
+    fn atomics_32() {
+        unsafe {
+            // AtomicI32
+            assert_eq!(
+                transmute::<_, [u8; 4]>(AtomicI32::new(0x01020304)),
+                transmute::<_, [u8; 4]>(AtomicI32_ne::new(0x01020304)),
+            );
+            assert_eq!(
+                [0x04, 0x03, 0x02, 0x01],
+                transmute::<_, [u8; 4]>(AtomicI32_le::new(0x01020304)),
+            );
+            assert_eq!(
+                [0x01, 0x02, 0x03, 0x04],
+                transmute::<_, [u8; 4]>(AtomicI32_be::new(0x01020304)),
             );
 
             // AtomicU32
@@ -1529,7 +1543,7 @@ mod tests {
         }
     }
 
-    #[cfg(has_atomics_64)]
+    #[cfg(target_has_atomic = "64")]
     #[test]
     fn atomics_64() {
         unsafe {
