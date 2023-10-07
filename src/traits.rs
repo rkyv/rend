@@ -296,7 +296,7 @@ macro_rules! impl_product_and_sum {
 /// be sound for `$name`.
 macro_rules! unsafe_impl_check_bytes_noop {
     (for $name:ident) => {
-        #[cfg(feature = "validation")]
+        #[cfg(feature = "bytecheck")]
         impl<C: ?Sized> bytecheck::CheckBytes<C> for $name {
             type Error = core::convert::Infallible;
 

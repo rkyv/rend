@@ -12,7 +12,7 @@
 //!
 //! ## Features
 //!
-//! - `validation`: Enables validation support through `bytecheck`
+//! - `bytecheck`: Enables support for validating types using `bytecheck`
 //!
 //! ## Example:
 //! ```
@@ -445,7 +445,7 @@ macro_rules! define_char {
         impl_partial_eq_and_eq!(for $name: char);
         impl_partial_ord!(for $name: char);
 
-        #[cfg(feature = "validation")]
+        #[cfg(feature = "bytecheck")]
         impl<C: ?Sized> bytecheck::CheckBytes<C> for $name {
             type Error = bytecheck::CharCheckError;
 
@@ -552,7 +552,7 @@ macro_rules! define_nonzero {
         impl_partial_ord!(for $name: $prim);
         impl_fmt!(UpperHex for $name);
 
-        #[cfg(feature = "validation")]
+        #[cfg(feature = "bytecheck")]
         impl<C: ?Sized> bytecheck::CheckBytes<C> for $name {
             type Error = bytecheck::NonZeroCheckError;
 
