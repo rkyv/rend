@@ -60,6 +60,8 @@
     rustdoc::missing_crate_level_docs
 )]
 
+#[cfg(feature = "bytecheck")]
+mod context;
 #[macro_use]
 mod traits;
 
@@ -446,25 +448,34 @@ macro_rules! define_char {
         impl_partial_ord!(for $name: char);
 
         #[cfg(feature = "bytecheck")]
-        impl<C: ?Sized> bytecheck::CheckBytes<C> for $name {
-            type Error = bytecheck::CharCheckError;
-
+        // SAFETY: `check_bytes` only returns `Ok` if the code point contained
+        // within the endian-aware `char` represents a valid `char`.
+        unsafe impl<C, E> bytecheck::CheckBytes<C, E> for $name
+        where
+            C: ?Sized,
+            E: bytecheck::rancor::Contextual,
+            char: bytecheck::CheckBytes<C, E>,
+        {
             #[inline]
-            unsafe fn check_bytes<'a>(
+            unsafe fn check_bytes(
                 value: *const Self,
                 context: &mut C,
-            ) -> Result<&'a Self, Self::Error> {
+            ) -> Result<(), E> {
+                use bytecheck::rancor::Context;
+
                 // SAFETY: `value` points to a `Self`, which has the same size
                 // as a `u32` and is at least as aligned as one.
-                let u = unsafe { *u32::check_bytes(value.cast(), context)? };
+                let u = unsafe { *value.cast::<u32>() };
                 let c = swap_endian!($endian u);
-                let _ = char::from_u32(c)
-                    .ok_or_else(|| bytecheck::CharCheckError {
-                        invalid_value: c,
-                    })?;
-                // SAFETY: We have verified that `value` contains a valid `char`
-                // when swapped to native endianness, and so is a valid `Self`.
-                Ok(unsafe { &*value })
+                // SAFETY: `value` points to a valid endian-aware `char` type if
+                // `c` is a valid `char`.
+                unsafe {
+                    char::check_bytes(&c as *const u32 as *const char, context)
+                        .with_context(|| context::ValueCheckContext {
+                            inner_name: "char",
+                            outer_name: core::stringify!($name),
+                        })
+                }
             }
         }
     };
@@ -553,27 +564,31 @@ macro_rules! define_nonzero {
         impl_fmt!(UpperHex for $name);
 
         #[cfg(feature = "bytecheck")]
-        impl<C: ?Sized> bytecheck::CheckBytes<C> for $name {
-            type Error = bytecheck::NonZeroCheckError;
-
+        // SAFETY: `check_bytes` only returns `Ok` if `value` points to a valid
+        // non-zero value, which is the only requirement for `NonZero` integers.
+        unsafe impl<C, E> bytecheck::CheckBytes<C, E> for $name
+        where
+            C: ?Sized,
+            E: bytecheck::rancor::Contextual,
+            $prim: bytecheck::CheckBytes<C, E>,
+        {
             #[inline]
-            unsafe fn check_bytes<'a>(
+            unsafe fn check_bytes(
                 value: *const Self,
                 context: &mut C,
-            ) -> Result<&'a Self, Self::Error> {
-                // SAFETY: `value` points to a `Self`, which has the same size
-                // as a `$prim_int` and is at least as aligned as one.
-                let x = unsafe {
-                    *<$prim_int>::check_bytes(value.cast(), context)?
-                };
+            ) -> Result<(), E> {
+                use bytecheck::rancor::Context;
 
-                // Note: the bit pattern for 0 is always the same regardless
-                // of endianness.
-                if x != 0 {
-                    // SAFETY: We have verified that `*value` is not zero.
-                    Ok(unsafe { &*value })
-                } else {
-                    Err(bytecheck::NonZeroCheckError::IsZero)
+                // SAFETY: `value` points to a `Self`, which has the same size
+                // as a `$prim` and is at least as aligned as one. Note that the
+                // bit pattern for 0 is always the same regardless of
+                // endianness.
+                unsafe {
+                    <$prim>::check_bytes(value.cast(), context)
+                        .with_context(|| context::ValueCheckContext {
+                            inner_name: core::stringify!($prim),
+                            outer_name: core::stringify!($name),
+                        })
                 }
             }
         }

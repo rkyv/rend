@@ -14,7 +14,7 @@ readme = "crates-io.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bytecheck = { version = "0.8", optional = true, default-features = false, git = "https://github.com/rkyv/bytecheck", branch = "0.8" }
+bytecheck = { version = "0.8", optional = true, default-features = false, path = "../bytecheck/bytecheck" }
 
 [features]
 default = []

@@ -297,18 +297,16 @@ macro_rules! impl_product_and_sum {
 macro_rules! unsafe_impl_check_bytes_noop {
     (for $name:ident) => {
         #[cfg(feature = "bytecheck")]
-        impl<C: ?Sized> bytecheck::CheckBytes<C> for $name {
-            type Error = core::convert::Infallible;
-
+        // SAFETY: All callers of this macro have guaranteed that all pointers
+        // to `$name`s which are properly aligned and point to enough bytes to
+        // represent the type also point to a valid instance of the type.
+        unsafe impl<C: ?Sized, E> bytecheck::CheckBytes<C, E> for $name {
             #[inline]
-            unsafe fn check_bytes<'a>(
-                value: *const Self,
-                _: &mut C,
-            ) -> Result<&'a Self, Self::Error> {
+            unsafe fn check_bytes(_: *const Self, _: &mut C) -> Result<(), E> {
                 // SAFETY: The invoker of this macro has guaranteed that an impl
                 // of `CheckBytes` with a `check_bytes` function that is a no-op
                 // is sound.
-                Ok(unsafe { &*value })
+                Ok(())
             }
         }
     };
