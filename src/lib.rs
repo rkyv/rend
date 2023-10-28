@@ -60,10 +60,16 @@
     rustdoc::missing_crate_level_docs
 )]
 
+#[macro_use]
+mod common;
 #[cfg(feature = "bytecheck")]
 mod context;
 #[macro_use]
 mod traits;
+#[macro_use]
+mod util;
+
+pub mod unaligned;
 
 #[cfg(target_has_atomic = "16")]
 use core::sync::atomic::{AtomicI16, AtomicU16};
@@ -79,67 +85,13 @@ use core::{
     sync::atomic::Ordering,
 };
 
-macro_rules! match_endian {
-    (little $little:expr, $big:expr $(,)?) => {
-        $little
-    };
-    (big $little:expr, $big:expr $(,)?) => {
-        $big
-    };
-}
-
-macro_rules! if_native_endian {
-    ($endian:ident $true:expr, $false:expr $(,)?) => {
-        match_endian!(
-            $endian
-            {
-                #[cfg(target_endian = "little")]
-                {
-                    $true
-                }
-                #[cfg(target_endian = "big")]
-                {
-                    $false
-                }
-            },
-            {
-                #[cfg(target_endian = "little")]
-                {
-                    $false
-                }
-                #[cfg(target_endian = "big")]
-                {
-                    $true
-                }
-            },
-        )
-    }
-}
-
-macro_rules! swap_endian {
-    ($endian:ident $expr:expr) => {
-        if_native_endian!($endian $expr, $expr.swap_bytes())
-    }
-}
-
-macro_rules! endian_name {
-    ($endian:ident) => {
-        match_endian!($endian "little", "big")
-    };
-}
-
-macro_rules! opposite_endian_name {
-    ($endian:ident) => {
-        match_endian!($endian "big", "little")
-    };
-}
-
 // `rustfmt` keeps changing the indentation of the attributes in this macro.
 #[rustfmt::skip]
 macro_rules! define_newtype {
     ($name:ident: $endian:ident $size_align:literal $prim:ty) => {
         #[allow(non_camel_case_types)]
-        #[doc = concat!("A ",
+        #[doc = concat!(
+            "A ",
             endian_name!($endian),
             "-endian `",
             stringify!($prim),
@@ -152,80 +104,11 @@ macro_rules! define_newtype {
     };
 }
 
-macro_rules! define_integer {
-    ($name:ident: $endian:ident $size_align:literal $prim:ty) => {
-        define_newtype!($name: $endian $size_align $prim);
-
-        impl $name {
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($name),
-                "` containing `value`.",
-            )]
-            #[inline]
-            pub const fn from_native(value: $prim) -> Self {
-                Self(swap_endian!($endian value))
-            }
-
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($prim),
-                "` with the same value as `self`.",
-            )]
-            #[inline]
-            pub const fn to_native(self) -> $prim {
-                swap_endian!($endian self.0)
-            }
-        }
-    };
-}
-
 macro_rules! define_signed_integer {
     ($name:ident: $endian:ident $size_align:literal $prim:ty) => {
-        define_integer!($name: $endian $size_align $prim);
-
-        // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
-        // a no-op is sound for signed integers.
-        unsafe_impl_check_bytes_noop!(for $name);
-
-        impl_binop!(Add::add for $name: $prim);
-        impl_binassign!(AddAssign::add_assign for $name: $prim);
-        impl_clone_and_copy!(for $name);
-        impl_fmt!(Binary for $name);
-        impl_binop!(BitAnd::bitand for $name: $prim);
-        impl_binassign!(BitAndAssign::bitand_assign for $name: $prim);
-        impl_binop!(BitOr::bitor for $name: $prim);
-        impl_binassign!(BitOrAssign::bitor_assign for $name: $prim);
-        impl_binop!(BitXor::bitxor for $name: $prim);
-        impl_binassign!(BitXorAssign::bitxor_assign for $name: $prim);
-        impl_fmt!(Debug for $name);
-        impl_default!(for $name: $prim);
-        impl_fmt!(Display for $name);
-        impl_binop!(Div::div for $name: $prim);
-        impl_binassign!(DivAssign::div_assign for $name: $prim);
-        impl_from!(for $name: $prim);
-        impl_hash!(for $name);
-        impl_fmt!(LowerExp for $name);
-        impl_fmt!(LowerHex for $name);
-        impl_binop!(Mul::mul for $name: $prim);
-        impl_binassign!(MulAssign::mul_assign for $name: $prim);
-        impl_unop!(Neg::neg for $name: $prim);
-        impl_unop!(Not::not for $name: $prim);
-        impl_fmt!(Octal for $name);
-        impl_ord!(for $name);
-        impl_partial_eq_and_eq!(for $name: $prim);
-        impl_partial_ord!(for $name: $prim);
-        impl_product_and_sum!(for $name);
-        impl_binop!(Rem::rem for $name: $prim);
-        impl_binassign!(RemAssign::rem_assign for $name: $prim);
-        impl_binop!(Shl::shl for $name: $prim);
-        impl_binassign!(ShlAssign::shl_assign for $name: $prim);
-        impl_binop!(Shr::shr for $name: $prim);
-        impl_binassign!(ShrAssign::shr_assign for $name: $prim);
-        impl_binop!(Sub::sub for $name: $prim);
-        impl_binassign!(SubAssign::sub_assign for $name: $prim);
-        impl_fmt!(UpperExp for $name);
-        impl_fmt!(UpperHex for $name);
+        define_newtype!($name: $endian $size_align $prim);
+        impl_integer!($name: $endian $prim);
+        impl_signed_integer_traits!($name: $endian $prim);
     };
 }
 
@@ -247,50 +130,10 @@ define_signed_integers! {
 
 macro_rules! define_unsigned_integer {
     ($name:ident: $endian:ident $size_align:literal $prim:ty) => {
-        define_integer!($name: $endian $size_align $prim);
-
-        // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
-        // a no-op is sound for unsigned integers.
-        unsafe_impl_check_bytes_noop!(for $name);
-
-        impl_binop!(Add::add for $name: $prim);
-        impl_binassign!(AddAssign::add_assign for $name: $prim);
-        impl_clone_and_copy!(for $name);
-        impl_fmt!(Binary for $name);
-        impl_binop!(BitAnd::bitand for $name: $prim);
-        impl_binassign!(BitAndAssign::bitand_assign for $name: $prim);
-        impl_binop!(BitOr::bitor for $name: $prim);
-        impl_binassign!(BitOrAssign::bitor_assign for $name: $prim);
-        impl_binop!(BitXor::bitxor for $name: $prim);
-        impl_binassign!(BitXorAssign::bitxor_assign for $name: $prim);
-        impl_fmt!(Debug for $name);
-        impl_default!(for $name: $prim);
-        impl_fmt!(Display for $name);
-        impl_binop!(Div::div for $name: $prim);
-        impl_binassign!(DivAssign::div_assign for $name: $prim);
-        impl_from!(for $name: $prim);
-        impl_hash!(for $name);
-        impl_fmt!(LowerExp for $name);
-        impl_fmt!(LowerHex for $name);
-        impl_binop!(Mul::mul for $name: $prim);
-        impl_binassign!(MulAssign::mul_assign for $name: $prim);
-        impl_unop!(Not::not for $name: $prim);
-        impl_fmt!(Octal for $name);
-        impl_ord!(for $name);
-        impl_partial_eq_and_eq!(for $name: $prim);
-        impl_partial_ord!(for $name: $prim);
-        impl_product_and_sum!(for $name);
-        impl_binop!(Rem::rem for $name: $prim);
-        impl_binassign!(RemAssign::rem_assign for $name: $prim);
-        impl_binop!(Shl::shl for $name: $prim);
-        impl_binassign!(ShlAssign::shl_assign for $name: $prim);
-        impl_binop!(Shr::shr for $name: $prim);
-        impl_binassign!(ShrAssign::shr_assign for $name: $prim);
-        impl_binop!(Sub::sub for $name: $prim);
-        impl_binassign!(SubAssign::sub_assign for $name: $prim);
-        impl_fmt!(UpperExp for $name);
-        impl_fmt!(UpperHex for $name);
-    };
+        define_newtype!($name: $endian $size_align $prim);
+        impl_integer!($name: $endian $prim);
+        impl_unsigned_integer_traits!($name: $endian $prim);
+    }
 }
 
 macro_rules! define_unsigned_integers {
@@ -310,79 +153,9 @@ define_unsigned_integers! {
 }
 
 macro_rules! define_float {
-    ($name:ident: $endian:ident $size_align:literal $prim:ty, $prim_int:ty) => {
+    ($name:ident: $endian:ident $size_align:literal $prim:ty as $prim_int:ty) => {
         define_newtype!($name: $endian $size_align $prim);
-
-        impl $name {
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($name),
-                "` containing `value`.",
-            )]
-            #[inline]
-            pub const fn from_native(value: $prim) -> Self {
-                use core::mem::transmute;
-
-                // `transmute` is used here because `from_bits` and `to_bits`
-                // are not stably const as of 1.72.0.
-
-                // SAFETY: `$prim` and `$prim_int` have the same size and all
-                // bit patterns are valid for both.
-                let value = unsafe { transmute::<$prim, $prim_int>(value) };
-                let value = swap_endian!($endian value);
-                // SAFETY: `$prim` and `$prim_int` have the same size and all
-                // bit patterns are valid for both.
-                let value = unsafe { transmute::<$prim_int, $prim>(value) };
-                Self(value)
-            }
-
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($prim),
-                "` with the same value as `self`.",
-            )]
-            #[inline]
-            pub const fn to_native(self) -> $prim {
-                use core::mem::transmute;
-
-                // `transmute` is used here because `from_bits` and `to_bits`
-                // are not stably const as of 1.72.0.
-
-                // SAFETY: `$prim` and `$prim_int` have the same size and all
-                // bit patterns are valid for both.
-                let value = unsafe { transmute::<$prim, $prim_int>(self.0) };
-                let value = swap_endian!($endian value);
-                // SAFETY: `$prim` and `$prim_int` have the same size and all
-                // bit patterns are valid for both.
-                unsafe { transmute::<$prim_int, $prim>(value) }
-            }
-        }
-
-        // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
-        // a no-op is sound for floats.
-        unsafe_impl_check_bytes_noop!(for $name);
-
-        impl_binop!(Add::add for $name: $prim);
-        impl_binassign!(AddAssign::add_assign for $name: $prim);
-        impl_clone_and_copy!(for $name);
-        impl_fmt!(Debug for $name);
-        impl_default!(for $name: $prim);
-        impl_fmt!(Display for $name);
-        impl_binop!(Div::div for $name: $prim);
-        impl_binassign!(DivAssign::div_assign for $name: $prim);
-        impl_from!(for $name: $prim);
-        impl_fmt!(LowerExp for $name);
-        impl_binop!(Mul::mul for $name: $prim);
-        impl_binassign!(MulAssign::mul_assign for $name: $prim);
-        impl_unop!(Neg::neg for $name: $prim);
-        impl_partial_eq_and_eq!(for $name: $prim);
-        impl_partial_ord!(for $name: $prim);
-        impl_product_and_sum!(for $name);
-        impl_binop!(Rem::rem for $name: $prim);
-        impl_binassign!(RemAssign::rem_assign for $name: $prim);
-        impl_binop!(Sub::sub for $name: $prim);
-        impl_binassign!(SubAssign::sub_assign for $name: $prim);
-        impl_fmt!(UpperExp for $name);
+        impl_float!($name: $endian $prim as $prim_int);
     };
 }
 
@@ -392,8 +165,8 @@ macro_rules! define_floats {
         $size_align:literal $prim:ty as $prim_int:ty
     ),* $(,)?) => {
         $(
-            define_float!($le: little $size_align $prim, $prim_int);
-            define_float!($be: big $size_align $prim, $prim_int);
+            define_float!($le: little $size_align $prim as $prim_int);
+            define_float!($be: big $size_align $prim as $prim_int);
         )*
     };
 }
@@ -406,78 +179,7 @@ define_floats! {
 macro_rules! define_char {
     ($name:ident: $endian:ident) => {
         define_newtype!($name: $endian 4 u32);
-
-        impl $name {
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($name),
-                "` containing `value`.",
-            )]
-            #[inline]
-            pub const fn from_native(value: char) -> Self {
-                Self(swap_endian!($endian value as u32))
-            }
-
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($prim),
-                "` with the same value as `self`.",
-            )]
-            #[inline]
-            pub const fn to_native(self) -> char {
-                use core::mem::transmute;
-
-                // `transmute` is used here because `from_u32_unchecked` is not
-                // stably const as of 1.72.0.
-
-                // SAFETY: `u32` and `char` have the same size and it is an
-                // invariant of this type that it contains a valid `char` when
-                // swapped to native endianness.
-                unsafe { transmute::<u32, char>(swap_endian!($endian self.0)) }
-            }
-        }
-
-        impl_clone_and_copy!(for $name);
-        impl_fmt!(Debug for $name);
-        impl_default!(for $name: char);
-        impl_fmt!(Display for $name);
-        impl_from!(for $name: char);
-        impl_hash!(for $name);
-        impl_ord!(for $name);
-        impl_partial_eq_and_eq!(for $name: char);
-        impl_partial_ord!(for $name: char);
-
-        #[cfg(feature = "bytecheck")]
-        // SAFETY: `check_bytes` only returns `Ok` if the code point contained
-        // within the endian-aware `char` represents a valid `char`.
-        unsafe impl<C, E> bytecheck::CheckBytes<C, E> for $name
-        where
-            C: ?Sized,
-            E: bytecheck::rancor::Contextual,
-            char: bytecheck::CheckBytes<C, E>,
-        {
-            #[inline]
-            unsafe fn check_bytes(
-                value: *const Self,
-                context: &mut C,
-            ) -> Result<(), E> {
-                use bytecheck::rancor::Context;
-
-                // SAFETY: `value` points to a `Self`, which has the same size
-                // as a `u32` and is at least as aligned as one.
-                let u = unsafe { *value.cast::<u32>() };
-                let c = swap_endian!($endian u);
-                // SAFETY: `value` points to a valid endian-aware `char` type if
-                // `c` is a valid `char`.
-                unsafe {
-                    char::check_bytes(&c as *const u32 as *const char, context)
-                        .with_context(|| context::ValueCheckContext {
-                            inner_name: "char",
-                            outer_name: core::stringify!($name),
-                        })
-                }
-            }
-        }
+        impl_char!($name: $endian);
     };
 }
 
@@ -490,108 +192,7 @@ macro_rules! define_nonzero {
         $endian:ident $size_align:literal $prim:ty as $prim_int:ty
     ) => {
         define_newtype!($name: $endian $size_align $prim);
-
-        impl $name {
-            /// Creates a non-zero if the given value is not zero.
-            #[inline]
-            pub const fn new(value: $prim_int) -> Option<Self> {
-                if value != 0 {
-                    // SAFETY: `value` is not zero.
-                    Some(unsafe { Self::new_unchecked(value) })
-                } else {
-                    None
-                }
-            }
-
-            /// Creates a non-zero without checking whether it is non-zero. This
-            /// results in undefined behavior if the value is zero.
-            ///
-            /// # Safety
-            ///
-            /// The value must not be zero.
-            #[inline]
-            pub const unsafe fn new_unchecked(value: $prim_int) -> Self {
-                // SAFETY: The caller has guaranteed that `value` is not zero.
-                unsafe {
-                    Self(<$prim>::new_unchecked(swap_endian!($endian value)))
-                }
-            }
-
-            /// Returns the value as a primitive type.
-            #[inline]
-            pub const fn get(self) -> $prim_int {
-                swap_endian!($endian self.0.get())
-            }
-
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($name),
-                "` containing `value`.",
-            )]
-            #[inline]
-            pub const fn from_native(value: $prim) -> Self {
-                // SAFETY: `value` is a non-zero integer and so `value.get()`
-                // cannot return zero.
-                unsafe { Self::new_unchecked(value.get()) }
-            }
-
-            #[doc = concat!(
-                "Returns a `",
-                stringify!($prim),
-                "` with the same value as `self`.",
-            )]
-            #[inline]
-            pub const fn to_native(self) -> $prim {
-                // SAFETY: `self` is a non-zero integer and so `self.get()`
-                // cannot return zero.
-                unsafe { <$prim>::new_unchecked(self.get()) }
-            }
-        }
-
-        impl_clone_and_copy!(for $name);
-        impl_fmt!(Binary for $name);
-        impl_binop_nonzero!(BitOr::bitor for $name: $prim);
-        impl_binassign_nonzero!(BitOrAssign::bitor_assign for $name: $prim);
-        impl_fmt!(Debug for $name);
-        impl_fmt!(Display for $name);
-        impl_from!(for $name: $prim);
-        impl_hash!(for $name);
-        impl_fmt!(LowerHex for $name);
-        impl_fmt!(Octal for $name);
-        impl_ord!(for $name);
-        impl_partial_eq_and_eq!(for $name: $prim);
-        impl_partial_ord!(for $name: $prim);
-        impl_fmt!(UpperHex for $name);
-
-        #[cfg(feature = "bytecheck")]
-        // SAFETY: `check_bytes` only returns `Ok` if `value` points to a valid
-        // non-zero value, which is the only requirement for `NonZero` integers.
-        unsafe impl<C, E> bytecheck::CheckBytes<C, E> for $name
-        where
-            C: ?Sized,
-            E: bytecheck::rancor::Contextual,
-            $prim: bytecheck::CheckBytes<C, E>,
-        {
-            #[inline]
-            unsafe fn check_bytes(
-                value: *const Self,
-                context: &mut C,
-            ) -> Result<(), E> {
-                use bytecheck::rancor::Context;
-
-                // SAFETY: `value` points to a `Self`, which has the same size
-                // as a `$prim` and is at least as aligned as one. Note that the
-                // bit pattern for 0 is always the same regardless of
-                // endianness.
-                unsafe {
-                    <$prim>::check_bytes(value.cast(), context)
-                        .with_context(|| context::ValueCheckContext {
-                            inner_name: core::stringify!($prim),
-                            outer_name: core::stringify!($name),
-                        })
-                }
-            }
-        }
+        impl_nonzero!($name: $endian $prim as $prim_int);
     };
 }
 
@@ -1067,11 +668,22 @@ define_atomics! {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use super::*;
     use core::mem::transmute;
 
     #[test]
-    fn primitives() {
+    fn signed_integers() {
+        assert_size_align! {
+            i16_be 2 2,
+            i16_le 2 2,
+            i32_be 4 4,
+            i32_le 4 4,
+            i64_be 8 8,
+            i64_le 8 8,
+            i128_be 16 16,
+            i128_le 16 16,
+        }
+
         unsafe {
             // i16
             assert_eq!(
@@ -1126,7 +738,23 @@ mod tests {
                     0x0102030405060708090a0b0c0d0e0f10
                 )),
             );
+        }
+    }
 
+    #[test]
+    fn unsigned_integers() {
+        assert_size_align! {
+            u16_be 2 2,
+            u16_le 2 2,
+            u32_be 4 4,
+            u32_le 4 4,
+            u64_be 8 8,
+            u64_le 8 8,
+            u128_be 16 16,
+            u128_le 16 16,
+        }
+
+        unsafe {
             // u16
             assert_eq!(
                 [0x02, 0x01],
@@ -1180,7 +808,19 @@ mod tests {
                     0x0102030405060708090a0b0c0d0e0f10
                 )),
             );
+        }
+    }
 
+    #[test]
+    fn floats() {
+        assert_size_align! {
+            f32_be 4 4,
+            f32_le 4 4,
+            f64_be 8 8,
+            f64_le 8 8,
+        }
+
+        unsafe {
             // f32
             assert_eq!(
                 [0xdb, 0x0f, 0x49, 0x40],
@@ -1222,7 +862,18 @@ mod tests {
     }
 
     #[test]
-    fn non_zero() {
+    fn signed_non_zero() {
+        assert_size_align! {
+            NonZeroI16_le 2 2,
+            NonZeroI16_be 2 2,
+            NonZeroI32_le 4 4,
+            NonZeroI32_be 4 4,
+            NonZeroI64_le 8 8,
+            NonZeroI64_be 8 8,
+            NonZeroI128_le 16 16,
+            NonZeroI128_be 16 16,
+        }
+
         unsafe {
             // NonZeroI16
             assert_eq!(
@@ -1281,7 +932,23 @@ mod tests {
                     0x0102030405060708090a0b0c0d0e0f10
                 )),
             );
+        }
+    }
 
+    #[test]
+    fn unsigned_non_zero() {
+        assert_size_align! {
+            NonZeroU16_le 2 2,
+            NonZeroU16_be 2 2,
+            NonZeroU32_le 4 4,
+            NonZeroU32_be 4 4,
+            NonZeroU64_le 8 8,
+            NonZeroU64_be 8 8,
+            NonZeroU128_le 16 16,
+            NonZeroU128_be 16 16,
+        }
+
+        unsafe {
             // NonZeroU16
             assert_eq!(
                 [0x02, 0x01],
@@ -1345,6 +1012,13 @@ mod tests {
     #[cfg(target_has_atomic = "16")]
     #[test]
     fn atomics_16() {
+        assert_size_align! {
+            AtomicI16_le 2 2,
+            AtomicI16_be 2 2,
+            AtomicU16_le 2 2,
+            AtomicU16_be 2 2,
+        }
+
         unsafe {
             // AtomicI16
             assert_eq!(
@@ -1371,6 +1045,13 @@ mod tests {
     #[cfg(target_has_atomic = "32")]
     #[test]
     fn atomics_32() {
+        assert_size_align! {
+            AtomicI32_le 4 4,
+            AtomicI32_be 4 4,
+            AtomicU32_le 4 4,
+            AtomicU32_be 4 4,
+        }
+
         unsafe {
             // AtomicI32
             assert_eq!(
@@ -1397,6 +1078,13 @@ mod tests {
     #[cfg(target_has_atomic = "64")]
     #[test]
     fn atomics_64() {
+        assert_size_align! {
+            AtomicI64_le 8 8,
+            AtomicI64_be 8 8,
+            AtomicU64_le 8 8,
+            AtomicU64_be 8 8,
+        }
+
         unsafe {
             // AtomicI64
             assert_eq!(

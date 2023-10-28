@@ -139,7 +139,7 @@ macro_rules! impl_clone_and_copy {
         impl Clone for $name {
             #[inline]
             fn clone(&self) -> Self {
-                Self(self.0.clone())
+                Self(self.0)
             }
         }
 
@@ -226,7 +226,9 @@ macro_rules! impl_partial_eq_and_eq {
         impl PartialEq for $name {
             #[inline]
             fn eq(&self, other: &Self) -> bool {
-                self.0.eq(&other.0)
+                let lhs = self.0;
+                let rhs = other.0;
+                lhs.eq(&rhs)
             }
         }
 
