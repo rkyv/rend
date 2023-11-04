@@ -258,7 +258,7 @@ macro_rules! impl_char {
                 // `c` is a valid `char`.
                 unsafe {
                     char::check_bytes(&c as *const u32 as *const char, context)
-                        .with_context(|| context::ValueCheckContext {
+                        .with_context(|| $crate::context::ValueCheckContext {
                             inner_name: "char",
                             outer_name: core::stringify!($name),
                         })
@@ -364,7 +364,7 @@ macro_rules! impl_nonzero {
                 // endianness.
                 unsafe {
                     <$prim>::check_bytes(value.cast(), context)
-                        .with_context(|| context::ValueCheckContext {
+                        .with_context(|| $crate::context::ValueCheckContext {
                             inner_name: core::stringify!($prim),
                             outer_name: core::stringify!($name),
                         })
