@@ -54,9 +54,8 @@ macro_rules! impl_signed_integer_traits {
         impl_unop!(Neg::neg for $name: $prim);
         impl_unop!(Not::not for $name: $prim);
         impl_fmt!(Octal for $name);
-        impl_ord!(for $name);
         impl_partial_eq_and_eq!(for $name: $prim);
-        impl_partial_ord!(for $name: $prim);
+        impl_partial_ord_and_ord!(for $name: $prim);
         impl_product_and_sum!(for $name);
         impl_binop!(Rem::rem for $name: $prim);
         impl_binassign!(RemAssign::rem_assign for $name: $prim);
@@ -100,9 +99,8 @@ macro_rules! impl_unsigned_integer_traits {
         impl_binassign!(MulAssign::mul_assign for $name: $prim);
         impl_unop!(Not::not for $name: $prim);
         impl_fmt!(Octal for $name);
-        impl_ord!(for $name);
         impl_partial_eq_and_eq!(for $name: $prim);
-        impl_partial_ord!(for $name: $prim);
+        impl_partial_ord_and_ord!(for $name: $prim);
         impl_product_and_sum!(for $name);
         impl_binop!(Rem::rem for $name: $prim);
         impl_binassign!(RemAssign::rem_assign for $name: $prim);
@@ -230,25 +228,24 @@ macro_rules! impl_char {
         impl_fmt!(Display for $name);
         impl_from!(for $name: char);
         impl_hash!(for $name);
-        impl_ord!(for $name);
         impl_partial_eq_and_eq!(for $name: char);
-        impl_partial_ord!(for $name: char);
+        impl_partial_ord_and_ord!(for $name: char);
 
         #[cfg(feature = "bytecheck")]
         // SAFETY: `check_bytes` only returns `Ok` if the code point contained
         // within the endian-aware `char` represents a valid `char`.
-        unsafe impl<C, E> bytecheck::CheckBytes<C, E> for $name
+        unsafe impl<C> bytecheck::CheckBytes<C> for $name
         where
-            C: ?Sized,
-            E: bytecheck::rancor::Contextual,
-            char: bytecheck::CheckBytes<C, E>,
+            C: bytecheck::rancor::Fallible + ?Sized,
+            C::Error: bytecheck::rancor::Trace,
+            char: bytecheck::CheckBytes<C>,
         {
             #[inline]
             unsafe fn check_bytes(
                 value: *const Self,
                 context: &mut C,
-            ) -> Result<(), E> {
-                use bytecheck::rancor::Context;
+            ) -> Result<(), C::Error> {
+                use bytecheck::rancor::ResultExt as _;
 
                 // SAFETY: `value` points to a `Self`, which has the same size
                 // as a `u32` and is at least as aligned as one.
@@ -258,7 +255,7 @@ macro_rules! impl_char {
                 // `c` is a valid `char`.
                 unsafe {
                     char::check_bytes(&c as *const u32 as *const char, context)
-                        .with_context(|| $crate::context::ValueCheckContext {
+                        .with_trace(|| $crate::context::ValueCheckContext {
                             inner_name: "char",
                             outer_name: core::stringify!($name),
                         })
@@ -337,26 +334,25 @@ macro_rules! impl_nonzero {
         impl_hash!(for $name);
         impl_fmt!(LowerHex for $name);
         impl_fmt!(Octal for $name);
-        impl_ord!(for $name);
         impl_partial_eq_and_eq!(for $name: $prim);
-        impl_partial_ord!(for $name: $prim);
+        impl_partial_ord_and_ord!(for $name: $prim);
         impl_fmt!(UpperHex for $name);
 
         #[cfg(feature = "bytecheck")]
         // SAFETY: `check_bytes` only returns `Ok` if `value` points to a valid
         // non-zero value, which is the only requirement for `NonZero` integers.
-        unsafe impl<C, E> bytecheck::CheckBytes<C, E> for $name
+        unsafe impl<C> bytecheck::CheckBytes<C> for $name
         where
-            C: ?Sized,
-            E: bytecheck::rancor::Contextual,
-            $prim: bytecheck::CheckBytes<C, E>,
+            C: bytecheck::rancor::Fallible + ?Sized,
+            C::Error: bytecheck::rancor::Trace,
+            $prim: bytecheck::CheckBytes<C>,
         {
             #[inline]
             unsafe fn check_bytes(
                 value: *const Self,
                 context: &mut C,
-            ) -> Result<(), E> {
-                use bytecheck::rancor::Context;
+            ) -> Result<(), C::Error> {
+                use bytecheck::rancor::ResultExt as _;
 
                 // SAFETY: `value` points to a `Self`, which has the same size
                 // as a `$prim` and is at least as aligned as one. Note that the
@@ -364,7 +360,7 @@ macro_rules! impl_nonzero {
                 // endianness.
                 unsafe {
                     <$prim>::check_bytes(value.cast(), context)
-                        .with_context(|| $crate::context::ValueCheckContext {
+                        .with_trace(|| $crate::context::ValueCheckContext {
                             inner_name: core::stringify!($prim),
                             outer_name: core::stringify!($name),
                         })

@@ -139,7 +139,7 @@ macro_rules! impl_clone_and_copy {
         impl Clone for $name {
             #[inline]
             fn clone(&self) -> Self {
-                Self(self.0)
+                *self
             }
         }
 
@@ -210,8 +210,28 @@ macro_rules! impl_hash {
     };
 }
 
-macro_rules! impl_ord {
-    (for $name:ident) => {
+macro_rules! impl_partial_ord_and_ord {
+    (for $name:ident: $prim:ty) => {
+        impl PartialOrd for $name {
+            #[inline]
+            fn partial_cmp(
+                &self,
+                other: &Self,
+            ) -> Option<::core::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+
+        impl PartialOrd<$prim> for $name {
+            #[inline]
+            fn partial_cmp(
+                &self,
+                other: &$prim,
+            ) -> Option<::core::cmp::Ordering> {
+                self.to_native().partial_cmp(other)
+            }
+        }
+
         impl Ord for $name {
             #[inline]
             fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
@@ -302,9 +322,15 @@ macro_rules! unsafe_impl_check_bytes_noop {
         // SAFETY: All callers of this macro have guaranteed that all pointers
         // to `$name`s which are properly aligned and point to enough bytes to
         // represent the type also point to a valid instance of the type.
-        unsafe impl<C: ?Sized, E> bytecheck::CheckBytes<C, E> for $name {
+        unsafe impl<C> bytecheck::CheckBytes<C> for $name
+        where
+            C: bytecheck::rancor::Fallible + ?Sized,
+        {
             #[inline]
-            unsafe fn check_bytes(_: *const Self, _: &mut C) -> Result<(), E> {
+            unsafe fn check_bytes(
+                _: *const Self,
+                _: &mut C,
+            ) -> Result<(), C::Error> {
                 // SAFETY: The invoker of this macro has guaranteed that an impl
                 // of `CheckBytes` with a `check_bytes` function that is a no-op
                 // is sound.
