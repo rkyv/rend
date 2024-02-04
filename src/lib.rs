@@ -169,15 +169,27 @@ macro_rules! swap_bytes {
 }
 
 macro_rules! from_native {
-    (@char NativeEndian<$ne:ty> $value:expr) => { $value };
-    (@char $endian:ident<$ne:ty> $value:expr) => { $value as u32 };
-    (@$class:ident $endian:ident<$ne:ty> $value:expr) => { $value };
+    (@char NativeEndian<$ne:ty> $value:expr) => {
+        $value
+    };
+    (@char $endian:ident<$ne:ty> $value:expr) => {
+        $value as u32
+    };
+    (@$class:ident $endian:ident<$ne:ty> $value:expr) => {
+        $value
+    };
 }
 
 macro_rules! to_native {
-    (@char NativeEndian<$ne:ty> $value:expr) => { $value };
-    (@char $endian:ident<$ne:ty> $value:expr) => { unsafe { char::from_u32_unchecked($value) } };
-    (@$class:ident $endian:ident<$ne:ty> $value:expr) => { $value };
+    (@char NativeEndian<$ne:ty> $value:expr) => {
+        $value
+    };
+    (@char $endian:ident<$ne:ty> $value:expr) => {
+        unsafe { char::from_u32_unchecked($value) }
+    };
+    (@$class:ident $endian:ident<$ne:ty> $value:expr) => {
+        $value
+    };
 }
 
 macro_rules! impl_endian {
@@ -214,11 +226,24 @@ macro_rules! impl_primitive {
 }
 
 impl_primitive!(
-    i16, i32, i64, i128,
-    u16, u32, u64, u128,
-    f32, f64,
-    NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128,
-    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128,
+    i16,
+    i32,
+    i64,
+    i128,
+    u16,
+    u32,
+    u64,
+    u128,
+    f32,
+    f64,
+    NonZeroI16,
+    NonZeroI32,
+    NonZeroI64,
+    NonZeroI128,
+    NonZeroU16,
+    NonZeroU32,
+    NonZeroU64,
+    NonZeroU128,
 );
 
 #[cfg(has_atomics)]

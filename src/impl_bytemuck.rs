@@ -2,31 +2,42 @@
 // types which are themselves Zeroable and Pod. This enables use of bytemuck::cast* methods to
 // safely transmute to and from these types.
 
-use bytemuck::{Zeroable, Pod};
-use crate::{Primitive, BigEndian, LittleEndian};
+use crate::{BigEndian, LittleEndian, Primitive};
+use bytemuck::{Pod, Zeroable};
 
 // SAFETY: T and T::Storage is Zeroable and Pod. LittleEndian is repr(transparent)
 // this satisfies the safety contracts of Zeroable and Pod.
 #[cfg(feature = "bytemuck")]
 unsafe impl<T> Zeroable for LittleEndian<T>
-where T: Primitive + Zeroable,
-      T::Storage: Zeroable {}
+where
+    T: Primitive + Zeroable,
+    T::Storage: Zeroable,
+{
+}
 #[cfg(feature = "bytemuck")]
 unsafe impl<T> Pod for LittleEndian<T>
-where T: Primitive + Pod + Copy + 'static,
-      T::Storage: Pod {}
-
+where
+    T: Primitive + Pod + Copy + 'static,
+    T::Storage: Pod,
+{
+}
 
 // SAFETY: T and T::Storage is Zeroable and Pod. BigEndian is repr(transparent)
 // this satisfies the safety contracts of Zeroable and Pod.
 #[cfg(feature = "bytemuck")]
 unsafe impl<T> Zeroable for BigEndian<T>
-where T: Primitive + Zeroable,
-      T::Storage: Zeroable {}
+where
+    T: Primitive + Zeroable,
+    T::Storage: Zeroable,
+{
+}
 #[cfg(feature = "bytemuck")]
 unsafe impl<T> Pod for BigEndian<T>
-where T: Primitive + Pod + Copy + 'static,
-      T::Storage: Pod {}
+where
+    T: Primitive + Pod + Copy + 'static,
+    T::Storage: Pod,
+{
+}
 
 #[cfg(test)]
 mod tests {
