@@ -201,7 +201,7 @@ macro_rules! impl_from {
 }
 
 macro_rules! impl_try_from_ptr_size {
-    (for $name:ident: TryFrom<$size:ty> via $prim:ty) => {
+    ($size:ident for $name:ident: $prim:ident) => {
         impl TryFrom<$size> for $name {
             type Error = <$prim as TryFrom<$size>>::Error;
 
@@ -210,19 +210,21 @@ macro_rules! impl_try_from_ptr_size {
                 Ok(Self::from_native(<$prim>::try_from(value)?))
             }
         }
+
+        impl_try_into_ptr_size!($size for $name: $prim);
     };
 }
 
 macro_rules! impl_try_into_ptr_size {
-    (TryInto<isize> for $name:ident via i16) => {
-        impl_into_ptr_size!(Into<isize> for $name);
+    (isize for $name:ident: i16) => {
+        impl_into_ptr_size!(isize for $name);
     };
 
-    (TryInto<usize> for $name:ident via u16) => {
-        impl_into_ptr_size!(Into<usize> for $name);
+    (usize for $name:ident: u16) => {
+        impl_into_ptr_size!(usize for $name);
     };
 
-    (TryInto<$size:ty> for $name:ident via $prim:ty) => {
+    ($size:ident for $name:ident: $prim:ident) => {
         impl TryFrom<$name> for $size {
             type Error = <$size as TryFrom<$prim>>::Error;
 
@@ -235,7 +237,7 @@ macro_rules! impl_try_into_ptr_size {
 }
 
 macro_rules! impl_into_ptr_size {
-    (Into<$size:ty> for $name:ident) => {
+    ($size:ident for $name:ident) => {
         impl From<$name> for $size {
             #[inline]
             fn from(value: $name) -> Self {
