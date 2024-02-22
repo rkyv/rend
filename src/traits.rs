@@ -200,6 +200,49 @@ macro_rules! impl_from {
     };
 }
 
+macro_rules! impl_try_from_ptr_size {
+    (for $name:ident: TryFrom<$size:ty> via $prim:ty) => {
+        impl TryFrom<$size> for $name {
+            type Error = <$prim as TryFrom<$size>>::Error;
+
+            #[inline]
+            fn try_from(value: $size) -> Result<Self, Self::Error> {
+                Ok(Self::from_native(<$prim>::try_from(value)?))
+            }
+        }
+    };
+}
+
+macro_rules! impl_try_into_ptr_size {
+    (TryInto<isize> for $name:ident via i16) => {
+        impl_try_into_ptr_size!(Into<isize> for $name via i16);
+    };
+
+    (TryInto<usize> for $name:ident via u16) => {
+        impl_try_into_ptr_size!(Into<usize> for $name via i16);
+    };
+
+    (TryInto<$size:ty> for $name:ident via $prim:ty) => {
+        impl TryFrom<$name> for $size {
+            type Error = <$size as TryFrom<$prim>>::Error;
+
+            #[inline]
+            fn try_from(value: $name) -> Result<Self, Self::Error> {
+                <$size>::try_from(value.to_native())
+            }
+        }
+    };
+
+    (Into<$size:ty> for $name:ident via $prim:ty) => {
+        impl From<$name> for $size {
+            #[inline]
+            fn from(value: $name) -> Self {
+                <$size>::from(value.to_native())
+            }
+        }
+    };
+}
+
 macro_rules! impl_hash {
     (for $name:ident) => {
         impl core::hash::Hash for $name {

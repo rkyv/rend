@@ -46,6 +46,7 @@ macro_rules! impl_signed_integer_traits {
         impl_binop!(Div::div for $name: $prim);
         impl_binassign!(DivAssign::div_assign for $name: $prim);
         impl_from!(for $name: $prim);
+        impl_try_from_ptr_size!(for $name: TryFrom<isize> via $prim);
         impl_hash!(for $name);
         impl_fmt!(LowerExp for $name);
         impl_fmt!(LowerHex for $name);
@@ -92,6 +93,7 @@ macro_rules! impl_unsigned_integer_traits {
         impl_binop!(Div::div for $name: $prim);
         impl_binassign!(DivAssign::div_assign for $name: $prim);
         impl_from!(for $name: $prim);
+        impl_try_from_ptr_size!(for $name: TryFrom<usize> via $prim);
         impl_hash!(for $name);
         impl_fmt!(LowerExp for $name);
         impl_fmt!(LowerHex for $name);

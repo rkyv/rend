@@ -127,6 +127,14 @@ define_signed_integers! {
     i64_le i64_be: 8 i64,
     i128_le i128_be: 16 i128,
 }
+impl_try_into_ptr_size!(TryInto<isize> for i16_le via i16);
+impl_try_into_ptr_size!(TryInto<isize> for i16_be via i16);
+impl_try_into_ptr_size!(TryInto<isize> for i32_le via i32);
+impl_try_into_ptr_size!(TryInto<isize> for i32_be via i32);
+impl_try_into_ptr_size!(TryInto<isize> for i64_le via i64);
+impl_try_into_ptr_size!(TryInto<isize> for i64_be via i64);
+impl_try_into_ptr_size!(TryInto<isize> for i128_le via i128);
+impl_try_into_ptr_size!(TryInto<isize> for i128_be via i128);
 
 macro_rules! define_unsigned_integer {
     ($name:ident: $endian:ident $size_align:literal $prim:ty) => {
@@ -151,6 +159,15 @@ define_unsigned_integers! {
     u64_le u64_be: 8 u64,
     u128_le u128_be: 16 u128,
 }
+
+impl_try_into_ptr_size!(TryInto<usize> for u16_le via u16);
+impl_try_into_ptr_size!(TryInto<usize> for u16_be via u16);
+impl_try_into_ptr_size!(TryInto<usize> for u32_le via u32);
+impl_try_into_ptr_size!(TryInto<usize> for u32_be via u32);
+impl_try_into_ptr_size!(TryInto<usize> for u64_le via u64);
+impl_try_into_ptr_size!(TryInto<usize> for u64_be via u64);
+impl_try_into_ptr_size!(TryInto<usize> for u128_le via u128);
+impl_try_into_ptr_size!(TryInto<usize> for u128_be via u128);
 
 macro_rules! define_float {
     ($name:ident: $endian:ident $size_align:literal $prim:ty as $prim_int:ty) => {
