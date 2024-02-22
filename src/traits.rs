@@ -215,11 +215,11 @@ macro_rules! impl_try_from_ptr_size {
 
 macro_rules! impl_try_into_ptr_size {
     (TryInto<isize> for $name:ident via i16) => {
-        impl_try_into_ptr_size!(Into<isize> for $name via i16);
+        impl_into_ptr_size!(Into<isize> for $name);
     };
 
     (TryInto<usize> for $name:ident via u16) => {
-        impl_try_into_ptr_size!(Into<usize> for $name via i16);
+        impl_into_ptr_size!(Into<usize> for $name);
     };
 
     (TryInto<$size:ty> for $name:ident via $prim:ty) => {
@@ -232,8 +232,10 @@ macro_rules! impl_try_into_ptr_size {
             }
         }
     };
+}
 
-    (Into<$size:ty> for $name:ident via $prim:ty) => {
+macro_rules! impl_into_ptr_size {
+    (Into<$size:ty> for $name:ident) => {
         impl From<$name> for $size {
             #[inline]
             fn from(value: $name) -> Self {
