@@ -105,7 +105,7 @@ macro_rules! define_newtype {
 }
 
 macro_rules! define_signed_integer {
-    ($name:ident: $endian:ident $size_align:literal $prim:ty) => {
+    ($name:ident: $endian:ident $size_align:literal $prim:ident) => {
         define_newtype!($name: $endian $size_align $prim);
         impl_integer!($name: $endian $prim);
         impl_signed_integer_traits!($name: $endian $prim);
@@ -113,7 +113,7 @@ macro_rules! define_signed_integer {
 }
 
 macro_rules! define_signed_integers {
-    ($($le:ident $be:ident: $size_align:literal $prim:ty),* $(,)?) => {
+    ($($le:ident $be:ident: $size_align:literal $prim:ident),* $(,)?) => {
         $(
             define_signed_integer!($le: little $size_align $prim);
             define_signed_integer!($be: big $size_align $prim);
@@ -129,7 +129,7 @@ define_signed_integers! {
 }
 
 macro_rules! define_unsigned_integer {
-    ($name:ident: $endian:ident $size_align:literal $prim:ty) => {
+    ($name:ident: $endian:ident $size_align:literal $prim:ident) => {
         define_newtype!($name: $endian $size_align $prim);
         impl_integer!($name: $endian $prim);
         impl_unsigned_integer_traits!($name: $endian $prim);
@@ -137,7 +137,7 @@ macro_rules! define_unsigned_integer {
 }
 
 macro_rules! define_unsigned_integers {
-    ($($le:ident $be:ident: $size_align:literal $prim:ty),* $(,)?) => {
+    ($($le:ident $be:ident: $size_align:literal $prim:ident),* $(,)?) => {
         $(
             define_unsigned_integer!($le: little $size_align $prim);
             define_unsigned_integer!($be: big $size_align $prim);

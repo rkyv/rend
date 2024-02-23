@@ -28,7 +28,7 @@ macro_rules! define_unaligned_newtype {
 }
 
 macro_rules! define_unaligned_signed_integer {
-    ($name:ident: $endian:ident $size:literal $prim:ty) => {
+    ($name:ident: $endian:ident $size:literal $prim:ident) => {
         define_unaligned_newtype!($name: $endian $size $prim);
         impl_integer!($name: $endian $prim);
         impl_signed_integer_traits!($name: $endian $prim);
@@ -36,7 +36,7 @@ macro_rules! define_unaligned_signed_integer {
 }
 
 macro_rules! define_unaligned_signed_integers {
-    ($($le:ident $be:ident: $size:literal $prim:ty),* $(,)?) => {
+    ($($le:ident $be:ident: $size:literal $prim:ident),* $(,)?) => {
         $(
             define_unaligned_signed_integer!($le: little $size $prim);
             define_unaligned_signed_integer!($be: big $size $prim);
@@ -52,7 +52,7 @@ define_unaligned_signed_integers! {
 }
 
 macro_rules! define_unaligned_unsigned_integer {
-    ($name:ident: $endian:ident $size:literal $prim:ty) => {
+    ($name:ident: $endian:ident $size:literal $prim:ident) => {
         define_unaligned_newtype!($name: $endian $size $prim);
         impl_integer!($name: $endian $prim);
         impl_unsigned_integer_traits!($name: $endian $prim);
@@ -60,7 +60,7 @@ macro_rules! define_unaligned_unsigned_integer {
 }
 
 macro_rules! define_unaligned_unsigned_integers {
-    ($($le:ident $be:ident: $size:literal $prim:ty),* $(,)?) => {
+    ($($le:ident $be:ident: $size:literal $prim:ident),* $(,)?) => {
         $(
             define_unaligned_unsigned_integer!($le: little $size $prim);
             define_unaligned_unsigned_integer!($be: big $size $prim);

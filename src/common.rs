@@ -25,7 +25,7 @@ macro_rules! impl_integer {
 }
 
 macro_rules! impl_signed_integer_traits {
-    ($name:ident: $endian:ident $prim:ty) => {
+    ($name:ident: $endian:ident $prim:ident) => {
         // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
         // a no-op is sound for signed integers.
         unsafe_impl_check_bytes_noop!(for $name);
@@ -46,6 +46,7 @@ macro_rules! impl_signed_integer_traits {
         impl_binop!(Div::div for $name: $prim);
         impl_binassign!(DivAssign::div_assign for $name: $prim);
         impl_from!(for $name: $prim);
+        impl_try_from_ptr_size!(isize for $name: $prim);
         impl_hash!(for $name);
         impl_fmt!(LowerExp for $name);
         impl_fmt!(LowerHex for $name);
@@ -71,7 +72,7 @@ macro_rules! impl_signed_integer_traits {
 }
 
 macro_rules! impl_unsigned_integer_traits {
-    ($name:ident: $endian:ident $prim:ty) => {
+    ($name:ident: $endian:ident $prim:ident) => {
         // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
         // a no-op is sound for unsigned integers.
         unsafe_impl_check_bytes_noop!(for $name);
@@ -92,6 +93,7 @@ macro_rules! impl_unsigned_integer_traits {
         impl_binop!(Div::div for $name: $prim);
         impl_binassign!(DivAssign::div_assign for $name: $prim);
         impl_from!(for $name: $prim);
+        impl_try_from_ptr_size!(usize for $name: $prim);
         impl_hash!(for $name);
         impl_fmt!(LowerExp for $name);
         impl_fmt!(LowerHex for $name);
