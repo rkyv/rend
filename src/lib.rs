@@ -1,50 +1,21 @@
 //! # rend
 //!
-//! rend is a library that provides cross-platform primitives for Rust.
+//! rend provides cross-platform, endian-aware primitives for Rust.
 //!
 //! rend does not provide cross-platform alternatives for types that are
 //! inherently cross-platform, such as `bool` and `u8`. It also does not provide
-//! cross-platform types for types that have an architecture-dependent size,
-//! such as `isize` and `usize`. rend does not support custom types.
+//! cross-platform alternatives for types that have an architecture-dependent
+//! size, such as `isize` and `usize`. rend does not support custom types.
 //!
 //! rend is intended to be used to build portable types that can be shared
-//! between different architectures, especially with zero-copy deserialization.
+//! between different architectures.
 //!
 //! ## Features
 //!
-//! - `bytecheck`: Enables support for validating types using `bytecheck`
+//! - `bytecheck`: Enables support for validating types using `bytecheck`.
 //!
 //! ## Example:
-//! ```
-//! use rend::*;
-//!
-//! let little_int = i32_le::from_native(0x12345678);
-//! // Internal representation is little-endian
-//! assert_eq!(
-//!     [0x78, 0x56, 0x34, 0x12],
-//!     unsafe { ::core::mem::transmute::<_, [u8; 4]>(little_int) }
-//! );
-//!
-//! // Can also be made with `.into()`
-//! let little_int: i32_le = 0x12345678.into();
-//! // Still formats correctly
-//! assert_eq!("305419896", format!("{}", little_int));
-//! assert_eq!("0x12345678", format!("0x{:x}", little_int));
-//!
-//! let big_int = i32_be::from_native(0x12345678);
-//! // Internal representation is big-endian
-//! assert_eq!(
-//!     [0x12, 0x34, 0x56, 0x78],
-//!     unsafe { ::core::mem::transmute::<_, [u8; 4]>(big_int) }
-//! );
-//!
-//! // Can also be made with `.into()`
-//! let big_int: i32_be = 0x12345678.into();
-//! // Still formats correctly
-//! assert_eq!("305419896", format!("{}", big_int));
-//! assert_eq!("0x12345678", format!("0x{:x}", big_int));
-//! ```
-
+#![doc = include_str!("../example.md")]
 #![no_std]
 #![deny(
     future_incompatible,
@@ -59,6 +30,7 @@
     rustdoc::broken_intra_doc_links,
     rustdoc::missing_crate_level_docs
 )]
+#![cfg_attr(all(docsrs, not(doctest)), feature(doc_cfg, doc_auto_cfg))]
 
 #[macro_use]
 mod common;
@@ -153,7 +125,10 @@ define_unsigned_integers! {
 }
 
 macro_rules! define_float {
-    ($name:ident: $endian:ident $size_align:literal $prim:ty as $prim_int:ty) => {
+    (
+        $name:ident:
+        $endian:ident $size_align:literal $prim:ty as $prim_int:ty
+    ) => {
         define_newtype!($name: $endian $size_align $prim);
         impl_float!($name: $endian $prim as $prim_int);
     };
@@ -231,6 +206,11 @@ const fn fetch_ordering(order: Ordering) -> Ordering {
     }
 }
 
+#[cfg(any(
+    target_has_atomic = "16",
+    target_has_atomic = "32",
+    target_has_atomic = "64",
+))]
 macro_rules! define_atomic {
     (
         $name:ident:
@@ -636,6 +616,11 @@ macro_rules! define_atomic {
     }
 }
 
+#[cfg(any(
+    target_has_atomic = "16",
+    target_has_atomic = "32",
+    target_has_atomic = "64",
+))]
 macro_rules! define_atomics {
     ($(
         $le:ident $be:ident:
@@ -668,8 +653,9 @@ define_atomics! {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::mem::transmute;
+
+    use super::*;
 
     #[test]
     fn signed_integers() {

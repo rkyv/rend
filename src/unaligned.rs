@@ -141,8 +141,9 @@ define_unaligned_nonzeros! {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::mem::transmute;
+
+    use super::*;
 
     #[test]
     fn signed_integers() {

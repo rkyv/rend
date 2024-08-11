@@ -1,5 +1,5 @@
 macro_rules! impl_unop {
-    ($trait:ident::$fn:ident for $name:ident: $prim:ty) => {
+    ($trait:ident:: $fn:ident for $name:ident : $prim:ty) => {
         impl ::core::ops::$trait for $name {
             type Output = <$prim as ::core::ops::$trait>::Output;
 
@@ -24,7 +24,7 @@ macro_rules! impl_binop_nonzero {
 }
 
 macro_rules! impl_binop_one {
-    ($trait:ident::$fn:ident ($self:ty, $other:ty) -> $output:ty) => {
+    ($trait:ident:: $fn:ident($self:ty, $other:ty) -> $output:ty) => {
         impl ::core::ops::$trait<$other> for $self {
             type Output = $output;
 
@@ -37,7 +37,7 @@ macro_rules! impl_binop_one {
 }
 
 macro_rules! impl_binop_both {
-    ($trait:ident::$fn:ident ($self:ty, $other:ty) -> $output:ty) => {
+    ($trait:ident:: $fn:ident($self:ty, $other:ty) -> $output:ty) => {
         impl ::core::ops::$trait<$other> for $self {
             type Output = $output;
 
@@ -73,7 +73,7 @@ macro_rules! impl_binop {
 }
 
 macro_rules! impl_binassign_nonzero {
-    ($trait:ident::$fn:ident for $name:ident: $prim:ty) => {
+    ($trait:ident:: $fn:ident for $name:ident : $prim:ty) => {
         impl ::core::ops::$trait<$prim> for $name {
             #[inline]
             fn $fn(&mut self, other: $prim) {
@@ -95,7 +95,7 @@ macro_rules! impl_binassign_nonzero {
 }
 
 macro_rules! impl_binassign {
-    ($trait:ident::$fn:ident for $name:ident: $prim:ty) => {
+    ($trait:ident:: $fn:ident for $name:ident : $prim:ty) => {
         impl ::core::ops::$trait<$prim> for $name {
             #[inline]
             fn $fn(&mut self, other: $prim) {
@@ -162,7 +162,7 @@ macro_rules! impl_fmt {
 }
 
 macro_rules! impl_default {
-    (for $name:ident: $prim:ty) => {
+    (for $name:ident : $prim:ty) => {
         impl Default for $name {
             #[inline]
             fn default() -> Self {
@@ -173,7 +173,7 @@ macro_rules! impl_default {
 }
 
 macro_rules! impl_from {
-    (for $name:ident: $prim:ty) => {
+    (for $name:ident : $prim:ty) => {
         impl From<$prim> for $name {
             fn from(value: $prim) -> Self {
                 Self::from_native(value)
@@ -258,7 +258,7 @@ macro_rules! impl_hash {
 }
 
 macro_rules! impl_partial_ord_and_ord {
-    (for $name:ident: $prim:ty) => {
+    (for $name:ident : $prim:ty) => {
         impl PartialOrd for $name {
             #[inline]
             fn partial_cmp(
@@ -289,7 +289,7 @@ macro_rules! impl_partial_ord_and_ord {
 }
 
 macro_rules! impl_partial_eq_and_eq {
-    (for $name:ident: $prim:ty) => {
+    (for $name:ident : $prim:ty) => {
         impl PartialEq for $name {
             #[inline]
             fn eq(&self, other: &Self) -> bool {
@@ -318,7 +318,7 @@ macro_rules! impl_partial_eq_and_eq {
 }
 
 macro_rules! impl_partial_ord {
-    (for $name:ident: $prim:ty) => {
+    (for $name:ident : $prim:ty) => {
         impl PartialOrd for $name {
             #[inline]
             fn partial_cmp(

@@ -1,24 +1,32 @@
-# rend &emsp; [![Latest Version]][crates.io] [![License]][license path]
+# `rend`
 
-[Latest Version]: https://img.shields.io/crates/v/rend.svg
+[![crates.io badge]][crates.io] [![docs badge]][docs] [![license badge]][license]
+
+[crates.io badge]: https://img.shields.io/crates/v/rend.svg
 [crates.io]: https://crates.io/crates/rend
-[License]: https://img.shields.io/badge/license-MIT-blue.svg
-[license path]: https://github.com/djkoloski/rend/blob/master/LICENSE
+[docs badge]: https://img.shields.io/docsrs/rend
+[docs]: https://docs.rs/rend
+[license badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license]: https://github.com/rkyv/rend/blob/master/LICENSE
 
-rend is a library that provides endian-aware primitives for Rust.
+rend provides cross-platform, endian-aware primitives for Rust.
 
----
+## Documentation
 
-## rend in action
+- [rend](https://docs.rs/rend), provides cross-platform, endian-aware primitives
+  for Rust
+
+## Example
 
 ```rust
+use core::mem::transmute;
 use rend::*;
 
 let little_int = i32_le::from_native(0x12345678);
 // Internal representation is little-endian
 assert_eq!(
     [0x78, 0x56, 0x34, 0x12],
-    unsafe { ::core::mem::transmute::<_, [u8; 4]>(little_int) }
+    unsafe { transmute::<_, [u8; 4]>(little_int) }
 );
 
 // Can also be made with `.into()`
@@ -31,7 +39,7 @@ let big_int = i32_be::from_native(0x12345678);
 // Internal representation is big-endian
 assert_eq!(
     [0x12, 0x34, 0x56, 0x78],
-    unsafe { ::core::mem::transmute::<_, [u8; 4]>(big_int) }
+    unsafe { transmute::<_, [u8; 4]>(big_int) }
 );
 
 // Can also be made with `.into()`

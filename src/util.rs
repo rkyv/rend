@@ -47,6 +47,11 @@ macro_rules! endian_name {
     };
 }
 
+#[cfg(any(
+    target_has_atomic = "16",
+    target_has_atomic = "32",
+    target_has_atomic = "64",
+))]
 macro_rules! opposite_endian_name {
     ($endian:ident) => {
         match_endian!($endian "big", "little")

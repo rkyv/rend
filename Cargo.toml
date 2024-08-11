@@ -1,15 +1,15 @@
 [package]
 name = "rend"
+description = "Cross-platform, endian-aware primitives for Rust"
 version = "0.5.0-alpha.7"
 authors = ["David Koloski <djkoloski@gmail.com>"]
 edition = "2021"
-description = "Endian-aware primitives for Rust"
 license = "MIT"
-documentation = "https://docs.rs/rend"
+readme = "README.md"
 repository = "https://github.com/djkoloski/rend"
 keywords = ["endian", "no_std"]
 categories = ["encoding", "no-std"]
-readme = "crates-io.md"
+documentation = "https://docs.rs/rend"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
