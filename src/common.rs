@@ -179,8 +179,8 @@ macro_rules! impl_float {
         // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
         // a no-op is sound for floats.
         unsafe_impl_check_bytes_noop!(for $name);
-        // SAFETY: `Pod` is implemented for `f32` and `f64` - as such, flipped representations
-        // must also be `Pod`.
+        // SAFETY: `Pod` is implemented for `f32` and `f64` - as such, flipped
+        // representations must also be `Pod`.
         unsafe_impl_zeroable!(for $name);
         unsafe_impl_pod!(for $name);
 

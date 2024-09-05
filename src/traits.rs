@@ -398,14 +398,15 @@ macro_rules! unsafe_impl_zeroable {
         unsafe impl bytemuck::Zeroable for $name {}
     };
 }
+
 /// # Safety
 ///
 /// Read the safety requirements of [`bytemuck::Pod`].
 /// In general, any type that is natively `Pod` (e.g. `u64`, `AtomicU32`) will
 /// be `Pod` even if wrapped (`u64_le`).
 ///
-/// It is required that `$name` has an impl for `Zeroable` for this macro to work.
-/// See [`unsafe_impl_zeroable!()`].
+/// It is required that `$name` has an impl for `Zeroable` for this macro to
+/// work. See [`unsafe_impl_zeroable!()`].
 macro_rules! unsafe_impl_pod {
     (for $name:ident) => {
         #[cfg(feature = "bytemuck")]
