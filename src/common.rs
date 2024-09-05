@@ -29,6 +29,10 @@ macro_rules! impl_signed_integer_traits {
         // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
         // a no-op is sound for signed integers.
         unsafe_impl_check_bytes_noop!(for $name);
+        // SAFETY: Signed integers are inhabited and allow all bit patterns,
+        // fulfilling the requirements of `Zeroable` and `Pod`.
+        unsafe_impl_zeroable!(for $name);
+        unsafe_impl_pod!(for $name);
 
         impl_binop!(Add::add for $name: $prim);
         impl_binassign!(AddAssign::add_assign for $name: $prim);
@@ -76,6 +80,10 @@ macro_rules! impl_unsigned_integer_traits {
         // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
         // a no-op is sound for unsigned integers.
         unsafe_impl_check_bytes_noop!(for $name);
+        // SAFETY: Unsigned integers are inhabited and allow all bit patterns,
+        // fulfilling the requirements of `Zeroable` and `Pod`.
+        unsafe_impl_zeroable!(for $name);
+        unsafe_impl_pod!(for $name);
 
         impl_binop!(Add::add for $name: $prim);
         impl_binassign!(AddAssign::add_assign for $name: $prim);
@@ -171,6 +179,10 @@ macro_rules! impl_float {
         // SAFETY: An impl of `CheckBytes` with a `check_bytes` function that is
         // a no-op is sound for floats.
         unsafe_impl_check_bytes_noop!(for $name);
+        // SAFETY: `Pod` is implemented for `f32` and `f64` - as such, flipped representations
+        // must also be `Pod`.
+        unsafe_impl_zeroable!(for $name);
+        unsafe_impl_pod!(for $name);
 
         impl_binop!(Add::add for $name: $prim);
         impl_binassign!(AddAssign::add_assign for $name: $prim);
@@ -227,6 +239,10 @@ macro_rules! impl_char {
                 unsafe { transmute::<u32, char>(swap_endian!($endian self.0)) }
             }
         }
+
+        // SAFETY: An all-zero bits `char` is just the null char, whether you
+        // read it forwards or backwards.
+        unsafe_impl_zeroable!(for $name);
 
         impl_clone_and_copy!(for $name);
         impl_fmt!(Debug for $name);
