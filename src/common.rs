@@ -130,12 +130,14 @@ macro_rules! impl_float {
                 use core::mem::transmute;
 
                 // `transmute` is used here because `from_bits` and `to_bits`
-                // are not stably const as of 1.72.0.
+                // are not stably const as of 1.81.0.
 
+                #[allow(clippy::transmute_float_to_int)]
                 // SAFETY: `$prim` and `$prim_int` have the same size and all
                 // bit patterns are valid for both.
                 let value = unsafe { transmute::<$prim, $prim_int>(value) };
                 let value = swap_endian!($endian value);
+                #[allow(clippy::transmute_int_to_float)]
                 // SAFETY: `$prim` and `$prim_int` have the same size and all
                 // bit patterns are valid for both.
                 let value = unsafe { transmute::<$prim_int, $prim>(value) };
@@ -152,12 +154,14 @@ macro_rules! impl_float {
                 use core::mem::transmute;
 
                 // `transmute` is used here because `from_bits` and `to_bits`
-                // are not stably const as of 1.72.0.
+                // are not stably const as of 1.81.0.
 
+                #[allow(clippy::transmute_float_to_int)]
                 // SAFETY: `$prim` and `$prim_int` have the same size and all
                 // bit patterns are valid for both.
                 let value = unsafe { transmute::<$prim, $prim_int>(self.0) };
                 let value = swap_endian!($endian value);
+                #[allow(clippy::transmute_int_to_float)]
                 // SAFETY: `$prim` and `$prim_int` have the same size and all
                 // bit patterns are valid for both.
                 unsafe { transmute::<$prim_int, $prim>(value) }
