@@ -1,7 +1,7 @@
 [package]
 name = "rend"
 description = "Cross-platform, endian-aware primitives for Rust"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["David Koloski <djkoloski@gmail.com>"]
 edition = "2021"
 license = "MIT"
