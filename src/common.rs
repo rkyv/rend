@@ -343,35 +343,5 @@ macro_rules! impl_nonzero {
         impl_partial_eq_and_eq!(for $name: $prim);
         impl_partial_ord_and_ord!(for $name: $prim);
         impl_fmt!(UpperHex for $name);
-
-        #[cfg(feature = "bytecheck")]
-        // SAFETY: `check_bytes` only returns `Ok` if `value` points to a valid
-        // non-zero value, which is the only requirement for `NonZero` integers.
-        unsafe impl<C> bytecheck::CheckBytes<C> for $name
-        where
-            C: bytecheck::rancor::Fallible + ?Sized,
-            C::Error: bytecheck::rancor::Trace,
-            $prim: bytecheck::CheckBytes<C>,
-        {
-            #[inline]
-            unsafe fn check_bytes(
-                value: *const Self,
-                context: &mut C,
-            ) -> Result<(), C::Error> {
-                use bytecheck::rancor::ResultExt as _;
-
-                // SAFETY: `value` points to a `Self`, which has the same size
-                // as a `$prim` and is at least as aligned as one. Note that the
-                // bit pattern for 0 is always the same regardless of
-                // endianness.
-                unsafe {
-                    <$prim>::check_bytes(value.cast(), context)
-                        .with_trace(|| $crate::context::ValueCheckContext {
-                            inner_name: core::stringify!($prim),
-                            outer_name: core::stringify!($name),
-                        })
-                }
-            }
-        }
     };
 }

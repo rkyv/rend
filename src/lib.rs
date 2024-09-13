@@ -168,6 +168,36 @@ macro_rules! define_nonzero {
     ) => {
         define_newtype!($name: $endian $size_align $prim);
         impl_nonzero!($name: $endian $prim as $prim_int);
+
+        #[cfg(feature = "bytecheck")]
+        // SAFETY: `check_bytes` only returns `Ok` if `value` points to a valid
+        // non-zero value, which is the only requirement for `NonZero` integers.
+        unsafe impl<C> bytecheck::CheckBytes<C> for $name
+        where
+            C: bytecheck::rancor::Fallible + ?Sized,
+            C::Error: bytecheck::rancor::Trace,
+            $prim: bytecheck::CheckBytes<C>,
+        {
+            #[inline]
+            unsafe fn check_bytes(
+                value: *const Self,
+                context: &mut C,
+            ) -> Result<(), C::Error> {
+                use bytecheck::rancor::ResultExt as _;
+
+                // SAFETY: `value` points to a `Self`, which has the same size
+                // as a `$prim` and is at least as aligned as one. Note that the
+                // bit pattern for 0 is always the same regardless of
+                // endianness.
+                unsafe {
+                    <$prim>::check_bytes(value.cast(), context)
+                        .with_trace(|| $crate::context::ValueCheckContext {
+                            inner_name: core::stringify!($prim),
+                            outer_name: core::stringify!($name),
+                        })
+                }
+            }
+        }
     };
 }
 
@@ -992,6 +1022,27 @@ mod tests {
                     0x0102030405060708090a0b0c0d0e0f10
                 )),
             );
+        }
+    }
+
+    #[cfg(feature = "bytecheck")]
+    #[test]
+    fn unaligned_non_zero() {
+        use bytecheck::{
+            rancor::{Failure, Strategy},
+            CheckBytes,
+        };
+        use unaligned::{u32_ule, NonZeroU32_ule};
+
+        let zero = u32_ule::from_native(0);
+        let ptr = (&zero as *const u32_ule).cast::<NonZeroU32_ule>();
+        let mut unit = ();
+        let context = Strategy::<_, Failure>::wrap(&mut unit);
+        unsafe {
+            <NonZeroU32_ule as CheckBytes<Strategy<(), Failure>>>::check_bytes(
+                ptr, context,
+            )
+            .unwrap_err();
         }
     }
 

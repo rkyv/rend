@@ -113,6 +113,41 @@ macro_rules! define_unaligned_nonzero {
     ($name:ident: $endian:ident $size:literal $prim:ty as $prim_int:ty) => {
         define_unaligned_newtype!($name: $endian $size $prim);
         impl_nonzero!($name: $endian $prim as $prim_int);
+
+        #[cfg(feature = "bytecheck")]
+        // SAFETY: `check_bytes` only returns `Ok` if `value` points to a valid
+        // non-zero value, which is the only requirement for `NonZero` integers.
+        unsafe impl<C> bytecheck::CheckBytes<C> for $name
+        where
+            C: bytecheck::rancor::Fallible + ?Sized,
+            C::Error: bytecheck::rancor::Trace,
+            $prim: bytecheck::CheckBytes<C>,
+        {
+            #[inline]
+            unsafe fn check_bytes(
+                value: *const Self,
+                context: &mut C,
+            ) -> Result<(), C::Error> {
+                use bytecheck::rancor::ResultExt as _;
+
+                // SAFETY: `value` points to a `Self`, which has the same size
+                // as a `$prim_int` and which the caller has guaranteed is valid
+                // for reads. All bit patterns are valid for `$prim_int`.
+                let value = unsafe {
+                    value.cast::<$prim_int>().read_unaligned()
+                };
+                let ptr = (&value as *const $prim_int).cast::<$prim>();
+                // SAFETY: `ptr` points to a `$prim_int` and so is guaranteed to
+                // be aligned and point to enough bytes to represent a `$prim`.
+                unsafe {
+                    <$prim>::check_bytes(ptr, context)
+                        .with_trace(|| $crate::context::ValueCheckContext {
+                            inner_name: core::stringify!($prim),
+                            outer_name: core::stringify!($name),
+                        })
+                }
+            }
+        }
     };
 }
 
