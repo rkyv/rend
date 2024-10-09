@@ -15,9 +15,11 @@ documentation = "https://docs.rs/rend"
 
 [dependencies]
 bytecheck = { version = "0.8", optional = true, default-features = false }
+serde = { version = "1.0.210", default-features = false, features = ["derive"], optional = true }
 
 [features]
 default = []
+serde = ["dep:serde"]
 
 [patch.crates-io]
 bytecheck = { git = "https://github.com/rkyv/bytecheck" }
