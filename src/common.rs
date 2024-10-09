@@ -68,6 +68,7 @@ macro_rules! impl_signed_integer_traits {
         impl_binassign!(SubAssign::sub_assign for $name: $prim);
         impl_fmt!(UpperExp for $name);
         impl_fmt!(UpperHex for $name);
+        impl_serde!(for $name: $prim);
     };
 }
 
@@ -114,6 +115,7 @@ macro_rules! impl_unsigned_integer_traits {
         impl_binassign!(SubAssign::sub_assign for $name: $prim);
         impl_fmt!(UpperExp for $name);
         impl_fmt!(UpperHex for $name);
+        impl_serde!(for $name: $prim);
     };
 }
 
@@ -192,6 +194,7 @@ macro_rules! impl_float {
         impl_binassign!(RemAssign::rem_assign for $name: $prim);
         impl_binop!(Sub::sub for $name: $prim);
         impl_binassign!(SubAssign::sub_assign for $name: $prim);
+        impl_serde!(for $name: $prim);
         impl_fmt!(UpperExp for $name);
     };
 }

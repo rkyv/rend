@@ -13,6 +13,8 @@
 //! ## Features
 //!
 //! - `bytecheck`: Enables support for validating types using `bytecheck`.
+//! - `serde`: Derives [`serde::Serialize`] and [`serde::Deserialize`] for types
+//!   that support it.
 //!
 //! ## Example:
 #![doc = include_str!("../example.md")]

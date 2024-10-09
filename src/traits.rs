@@ -386,3 +386,58 @@ macro_rules! unsafe_impl_check_bytes_noop {
         }
     };
 }
+
+macro_rules! impl_serde {
+    (for $name:ident : $prim:ty) => {
+        #[cfg(feature = "serde")]
+        impl serde::Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer,
+            {
+                serializer
+                    .serialize_bytes(self.to_native().to_ne_bytes().as_slice())
+            }
+        }
+
+        #[cfg(feature = "serde")]
+        impl<'de> serde::Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct Visitor {}
+                impl<'v> serde::de::Visitor<'v> for Visitor {
+                    type Value = $name;
+
+                    fn expecting(
+                        &self,
+                        formatter: &mut core::fmt::Formatter,
+                    ) -> core::fmt::Result {
+                        formatter.write_str(
+                            "Expecting native-endian bytes for deserializing \
+                             endian-aware type",
+                        )
+                    }
+                    fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        let v = <$prim>::from_ne_bytes(match v.try_into() {
+                            Ok(v) => v,
+                            Err(_) => {
+                                return Err(serde::de::Error::custom(
+                                    "Could not convert bytes to primitive \
+                                     type's `from_ne_bytes`",
+                                ))
+                            }
+                        });
+
+                        Ok($name::from_native(v))
+                    }
+                }
+                deserializer.deserialize_bytes(Visitor {})
+            }
+        }
+    };
+}
