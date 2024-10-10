@@ -386,3 +386,42 @@ macro_rules! unsafe_impl_check_bytes_noop {
         }
     };
 }
+
+/// # Safety
+///
+/// An all-zero bit pattern for `$name` must be a valid value.
+/// As a rule, any derivative type (e.g. `u64_le` or `i32_be`) of a native type
+/// (e.g. `u64`, `i32`) that is `Zeroable` will also be zeroable.
+macro_rules! unsafe_impl_zeroable {
+    (for $name:ident) => {
+        #[cfg(feature = "bytemuck-1")]
+        unsafe impl bytemuck_1::Zeroable for $name {}
+    };
+}
+
+/// # Safety
+///
+/// Read the safety requirements of [`bytemuck::Pod`].
+/// In general, any type that is natively `Pod` (e.g. `u64`, `AtomicU32`) will
+/// be `Pod` even if wrapped (`u64_le`).
+///
+/// It is required that `$name` has an impl for `Zeroable` for this macro to
+/// work. See [`unsafe_impl_zeroable!()`].
+macro_rules! unsafe_impl_pod {
+    (for $name:ident) => {
+        #[cfg(feature = "bytemuck-1")]
+        unsafe impl bytemuck_1::Pod for $name {}
+    };
+}
+
+/// # Safety
+///
+/// Read the safety requirements of [`bytemuck::NoUninit`].
+/// All primitive types are `NoUninit` and as a result, all of this crates's
+/// wrapped primitive types are also `NoUninit`.
+macro_rules! unsafe_impl_no_uninit {
+    (for $name:ident) => {
+        #[cfg(feature = "bytemuck-1")]
+        unsafe impl bytemuck_1::NoUninit for $name {}
+    };
+}
