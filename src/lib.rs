@@ -14,6 +14,10 @@
 //!
 //! - `bytecheck`: Enables support for validating types using `bytecheck`.
 //!
+//! ## Crates
+//!
+//! - `zerocopy-0_8`
+//!
 //! ## Example:
 #![doc = include_str!("../example.md")]
 #![no_std]
@@ -57,9 +61,6 @@ use core::{
     sync::atomic::Ordering,
 };
 
-#[cfg(feature = "zerocopy-0_8")]
-use zerocopy::*;
-
 // `rustfmt` keeps changing the indentation of the attributes in this macro.
 #[rustfmt::skip]
 macro_rules! define_newtype {
@@ -88,7 +89,12 @@ macro_rules! define_signed_integer {
         define_newtype!(
             #[cfg_attr(
                 feature = "zerocopy-0_8",
-                derive(FromBytes, IntoBytes, Immutable, KnownLayout),
+                derive(
+                    zerocopy_derive::FromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                ),
             )]
             $name: $endian $size_align $prim
         );
@@ -118,7 +124,12 @@ macro_rules! define_unsigned_integer {
         define_newtype!(
             #[cfg_attr(
                 feature = "zerocopy-0_8",
-                derive(FromBytes, IntoBytes, Immutable, KnownLayout),
+                derive(
+                    zerocopy_derive::FromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                ),
             )]
             $name: $endian $size_align $prim
         );
@@ -151,7 +162,12 @@ macro_rules! define_float {
         define_newtype!(
             #[cfg_attr(
                 feature = "zerocopy-0_8",
-                derive(FromBytes, IntoBytes, Immutable, KnownLayout),
+                derive(
+                    zerocopy_derive::FromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                ),
             )]
             $name: $endian $size_align $prim
         );
@@ -181,7 +197,19 @@ macro_rules! define_char {
         define_newtype!(
             #[cfg_attr(
                 feature = "zerocopy-0_8",
-                derive(TryFromBytes, IntoBytes, Immutable, KnownLayout),
+                derive(
+                    // The generated impl for `zerocopy::TryFromBytes` is overly
+                    // permissive. The derive macro doesn't understand that even
+                    // though this struct only contains a `u32`, it still has a
+                    // restricted set of valid bit patterns. Because
+                    // `zerocopy::TryFromBytes` has hidden, semver-breaking
+                    // members, I can't write a manual impl. So no impl for you.
+                    //
+                    // zerocopy_derive::TryFromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                ),
             )]
             $name: $endian 4 u32
         );
@@ -200,7 +228,12 @@ macro_rules! define_nonzero {
         define_newtype!(
             #[cfg_attr(
                 feature = "zerocopy-0_8",
-                derive(TryFromBytes, IntoBytes, Immutable, KnownLayout),
+                derive(
+                    zerocopy_derive::TryFromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                ),
             )]
             $name: $endian $size_align $prim
         );
@@ -286,7 +319,11 @@ macro_rules! define_atomic {
         define_newtype!(
             #[cfg_attr(
                 feature = "zerocopy-0_8",
-                derive(FromBytes, IntoBytes, KnownLayout),
+                derive(
+                    zerocopy_derive::FromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::KnownLayout,
+                ),
             )]
             $name: $endian $size_align $prim
         );
