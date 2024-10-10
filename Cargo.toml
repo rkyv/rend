@@ -16,9 +16,12 @@ documentation = "https://docs.rs/rend"
 [dependencies]
 bytecheck = { version = "0.8", optional = true, default-features = false }
 bytemuck-1 = { package = "bytemuck", version = "1", optional = true, default-features = false }
+zerocopy = { package = "zerocopy", version = "0.8", optional = true, default-features = false }
+zerocopy-derive = { package = "zerocopy-derive", version = "0.8", optional = true, default-features = false }
 
 [features]
 default = []
+zerocopy-0_8 = ["dep:zerocopy", "dep:zerocopy-derive"]
 
 [patch.crates-io]
 bytecheck = { git = "https://github.com/rkyv/bytecheck" }

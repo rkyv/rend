@@ -11,7 +11,10 @@ use core::{
 // `rustfmt` keeps changing the indentation of the attributes in this macro.
 #[rustfmt::skip]
 macro_rules! define_unaligned_newtype {
-    ($name:ident: $endian:ident $size:literal $prim:ty) => {
+    (
+        $(#[$attr:meta])*
+        $name:ident: $endian:ident $size:literal $prim:ty
+    ) => {
         #[allow(non_camel_case_types)]
         #[doc = concat!(
             "A ",
@@ -22,6 +25,7 @@ macro_rules! define_unaligned_newtype {
             stringify!($size),
             "` and alignment of `1`.",
         )]
+        $(#[$attr])*
         #[repr(C, packed)]
         pub struct $name($prim);
     };
@@ -29,7 +33,19 @@ macro_rules! define_unaligned_newtype {
 
 macro_rules! define_unaligned_signed_integer {
     ($name:ident: $endian:ident $size:literal $prim:ident) => {
-        define_unaligned_newtype!($name: $endian $size $prim);
+        define_unaligned_newtype!(
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(
+                    zerocopy_derive::FromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                    zerocopy_derive::Unaligned,
+                ),
+            )]
+            $name: $endian $size $prim
+        );
         impl_integer!($name: $endian $prim);
         impl_signed_integer_traits!($name: $endian $prim);
     };
@@ -53,7 +69,19 @@ define_unaligned_signed_integers! {
 
 macro_rules! define_unaligned_unsigned_integer {
     ($name:ident: $endian:ident $size:literal $prim:ident) => {
-        define_unaligned_newtype!($name: $endian $size $prim);
+        define_unaligned_newtype!(
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(
+                    zerocopy_derive::FromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                    zerocopy_derive::Unaligned,
+                ),
+            )]
+            $name: $endian $size $prim
+        );
         impl_integer!($name: $endian $prim);
         impl_unsigned_integer_traits!($name: $endian $prim);
     }
@@ -77,7 +105,19 @@ define_unaligned_unsigned_integers! {
 
 macro_rules! define_unaligned_float {
     ($name:ident: $endian:ident $size:literal $prim:ty as $prim_int:ty) => {
-        define_unaligned_newtype!($name: $endian $size $prim);
+        define_unaligned_newtype!(
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(
+                    zerocopy_derive::FromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                    zerocopy_derive::Unaligned,
+                ),
+            )]
+            $name: $endian $size $prim
+        );
         impl_float!($name: $endian $prim as $prim_int);
     };
 }
@@ -101,7 +141,26 @@ define_unaligned_floats! {
 
 macro_rules! define_unaligned_char {
     ($name:ident: $endian:ident) => {
-        define_unaligned_newtype!($name: $endian 4 u32);
+        define_unaligned_newtype!(
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(
+                    // The generated impl for `zerocopy::TryFromBytes` is overly
+                    // permissive. The derive macro doesn't understand that even
+                    // though this struct only contains a `u32`, it still has a
+                    // restricted set of valid bit patterns. Because
+                    // `zerocopy::TryFromBytes` has hidden, semver-breaking
+                    // members, I can't write a manual impl. So no impl for you.
+                    //
+                    // zerocopy_derive::TryFromBytes,
+                    zerocopy_derive::IntoBytes,
+                    zerocopy_derive::Immutable,
+                    zerocopy_derive::KnownLayout,
+                    zerocopy_derive::Unaligned,
+                ),
+            )]
+            $name: $endian 4 u32
+        );
         impl_char!($name: $endian);
     };
 }
