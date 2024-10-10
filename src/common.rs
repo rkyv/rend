@@ -243,6 +243,8 @@ macro_rules! impl_char {
         // SAFETY: An all-zero bits `char` is just the null char, whether you
         // read it forwards or backwards.
         unsafe_impl_zeroable!(for $name);
+        // SAFETY: `char`s do not contain any uninit bytes.
+        unsafe_impl_no_uninit!(for $name);
 
         impl_clone_and_copy!(for $name);
         impl_fmt!(Debug for $name);
@@ -345,6 +347,9 @@ macro_rules! impl_nonzero {
                 unsafe { <$prim>::new_unchecked(self.get()) }
             }
         }
+
+        // SAFETY: Non-zero integers do not contain any uninit bytes.
+        unsafe_impl_no_uninit!(for $name);
 
         impl_clone_and_copy!(for $name);
         impl_fmt!(Binary for $name);
