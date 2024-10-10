@@ -57,13 +57,16 @@ use core::{
     sync::atomic::Ordering,
 };
 
-#[cfg(feature = "zerocopy")]
+#[cfg(feature = "zerocopy-0_8")]
 use zerocopy::*;
 
 // `rustfmt` keeps changing the indentation of the attributes in this macro.
 #[rustfmt::skip]
 macro_rules! define_newtype {
-    ($(#[$attr:meta])* $name:ident: $endian:ident $size_align:literal $prim:ty) => {
+    (
+        $(#[$attr:meta])*
+        $name:ident: $endian:ident $size_align:literal $prim:ty
+    ) => {
         #[allow(non_camel_case_types)]
         #[doc = concat!(
             "A ",
@@ -83,7 +86,10 @@ macro_rules! define_newtype {
 macro_rules! define_signed_integer {
     ($name:ident: $endian:ident $size_align:literal $prim:ident) => {
         define_newtype!(
-            #[cfg_attr(feature = "zerocopy", derive(FromBytes, IntoBytes, Immutable, KnownLayout))]
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(FromBytes, IntoBytes, Immutable, KnownLayout),
+            )]
             $name: $endian $size_align $prim
         );
         impl_integer!($name: $endian $prim);
@@ -110,7 +116,10 @@ define_signed_integers! {
 macro_rules! define_unsigned_integer {
     ($name:ident: $endian:ident $size_align:literal $prim:ident) => {
         define_newtype!(
-            #[cfg_attr(feature = "zerocopy", derive(FromBytes, IntoBytes, Immutable, KnownLayout))]
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(FromBytes, IntoBytes, Immutable, KnownLayout),
+            )]
             $name: $endian $size_align $prim
         );
         impl_integer!($name: $endian $prim);
@@ -140,7 +149,10 @@ macro_rules! define_float {
         $endian:ident $size_align:literal $prim:ty as $prim_int:ty
     ) => {
         define_newtype!(
-            #[cfg_attr(feature = "zerocopy", derive(FromBytes, IntoBytes, Immutable, KnownLayout))]
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(FromBytes, IntoBytes, Immutable, KnownLayout),
+            )]
             $name: $endian $size_align $prim
         );
         impl_float!($name: $endian $prim as $prim_int);
@@ -167,7 +179,10 @@ define_floats! {
 macro_rules! define_char {
     ($name:ident: $endian:ident) => {
         define_newtype!(
-            #[cfg_attr(feature = "zerocopy", derive(TryFromBytes, IntoBytes, Immutable, KnownLayout))]
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(TryFromBytes, IntoBytes, Immutable, KnownLayout),
+            )]
             $name: $endian 4 u32
         );
         impl_char!($name: $endian);
@@ -183,7 +198,10 @@ macro_rules! define_nonzero {
         $endian:ident $size_align:literal $prim:ty as $prim_int:ty
     ) => {
         define_newtype!(
-            #[cfg_attr(feature = "zerocopy", derive(TryFromBytes, IntoBytes, Immutable, KnownLayout))]
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(TryFromBytes, IntoBytes, Immutable, KnownLayout),
+            )]
             $name: $endian $size_align $prim
         );
         impl_nonzero!($name: $endian $prim as $prim_int);
@@ -266,7 +284,10 @@ macro_rules! define_atomic {
         $endian:ident $size_align:literal $prim:ty as $prim_int:ty
     ) => {
         define_newtype!(
-            #[cfg_attr(feature = "zerocopy", derive(FromBytes, IntoBytes, KnownLayout))]
+            #[cfg_attr(
+                feature = "zerocopy-0_8",
+                derive(FromBytes, IntoBytes, KnownLayout),
+            )]
             $name: $endian $size_align $prim
         );
 

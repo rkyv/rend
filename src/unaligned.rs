@@ -12,6 +12,10 @@ use core::{
 #[rustfmt::skip]
 macro_rules! define_unaligned_newtype {
     ($name:ident: $endian:ident $size:literal $prim:ty) => {
+        #[cfg_attr(
+            feature = "zerocopy-0_8",
+            derive(FromBytes, IntoBytes, Immutable, KnownLayout, Unaligned),
+        )]
         #[allow(non_camel_case_types)]
         #[doc = concat!(
             "A ",
