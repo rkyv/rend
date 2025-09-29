@@ -141,7 +141,6 @@ macro_rules! impl_float {
                 // are not stably const as of 1.81.0.
 
                 #[allow(
-                    clippy::transmute_float_to_int,
                     unknown_lints,
                     unnecessary_transmutes,
                 )]
@@ -150,7 +149,6 @@ macro_rules! impl_float {
                 let value = unsafe { transmute::<$prim, $prim_int>(value) };
                 let value = swap_endian!($endian value);
                 #[allow(
-                    clippy::transmute_int_to_float,
                     unknown_lints,
                     unnecessary_transmutes,
                 )]
@@ -173,7 +171,6 @@ macro_rules! impl_float {
                 // are not stably const as of 1.81.0.
 
                 #[allow(
-                    clippy::transmute_float_to_int,
                     unknown_lints,
                     unnecessary_transmutes,
                 )]
@@ -182,7 +179,6 @@ macro_rules! impl_float {
                 let value = unsafe { transmute::<$prim, $prim_int>(self.0) };
                 let value = swap_endian!($endian value);
                 #[allow(
-                    clippy::transmute_int_to_float,
                     unknown_lints,
                     unnecessary_transmutes,
                 )]

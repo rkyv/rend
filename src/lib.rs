@@ -34,7 +34,7 @@
     rustdoc::broken_intra_doc_links,
     rustdoc::missing_crate_level_docs
 )]
-#![cfg_attr(all(docsrs, not(doctest)), feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(all(docsrs, not(doctest)), feature(doc_cfg))]
 
 #[macro_use]
 mod common;
