@@ -267,38 +267,6 @@ macro_rules! impl_char {
         impl_hash!(for $name);
         impl_partial_eq_and_eq!(for $name: char);
         impl_partial_ord_and_ord!(for $name: char);
-
-        #[cfg(feature = "bytecheck")]
-        // SAFETY: `check_bytes` only returns `Ok` if the code point contained
-        // within the endian-aware `char` represents a valid `char`.
-        unsafe impl<C> bytecheck::CheckBytes<C> for $name
-        where
-            C: bytecheck::rancor::Fallible + ?Sized,
-            C::Error: bytecheck::rancor::Trace,
-            char: bytecheck::CheckBytes<C>,
-        {
-            #[inline]
-            unsafe fn check_bytes(
-                value: *const Self,
-                context: &mut C,
-            ) -> Result<(), C::Error> {
-                use bytecheck::rancor::ResultExt as _;
-
-                // SAFETY: `value` points to a `Self`, which has the same size
-                // as a `u32` and is at least as aligned as one.
-                let u = unsafe { *value.cast::<u32>() };
-                let c = swap_endian!($endian u);
-                // SAFETY: `value` points to a valid endian-aware `char` type if
-                // `c` is a valid `char`.
-                unsafe {
-                    char::check_bytes(&c as *const u32 as *const char, context)
-                        .with_trace(|| $crate::context::ValueCheckContext {
-                            inner_name: "char",
-                            outer_name: core::stringify!($name),
-                        })
-                }
-            }
-        }
     };
 }
 
