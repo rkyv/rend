@@ -427,7 +427,7 @@ macro_rules! define_atomic {
                     failure,
                 ) {
                     Ok(x) => Ok(swap_endian!($endian x)),
-                    Err(x) => Ok(swap_endian!($endian x)),
+                    Err(x) => Err(swap_endian!($endian x)),
                 }
             }
 
@@ -626,10 +626,10 @@ macro_rules! define_atomic {
                 fetch_order: Ordering,
                 f: F,
             ) -> $prim_int {
-                let mut prev = swap_endian!($endian self.0.load(fetch_order));
+                let mut prev = self.load(fetch_order);
                 loop {
-                    let next = swap_endian!($endian f(prev));
-                    match self.0.compare_exchange_weak(
+                    let next = f(prev);
+                    match self.compare_exchange_weak(
                         prev,
                         next,
                         set_order,
@@ -637,7 +637,7 @@ macro_rules! define_atomic {
                     ) {
                         Ok(x) => break x,
                         Err(next_prev) => {
-                            prev = swap_endian!($endian next_prev);
+                            prev = next_prev;
                         }
                     }
                 }
