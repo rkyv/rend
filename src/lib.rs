@@ -659,6 +659,7 @@ macro_rules! define_atomic {
                 fetch_order: Ordering,
                 mut f: F,
             ) -> Result<$prim_int, $prim_int> {
+                #[allow(deprecated)]
                 self.0.fetch_update(set_order, fetch_order, |x| {
                     f(swap_endian!($endian x)).map(|y| swap_endian!($endian y))
                 })
